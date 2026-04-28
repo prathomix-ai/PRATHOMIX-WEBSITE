@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Disallow private routes
+Disallow: /profile
+Disallow: /admin
+Disallow: /settings
+
+Sitemap: https://prathomix.xyz/sitemap.xml

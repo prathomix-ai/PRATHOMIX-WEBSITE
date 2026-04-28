@@ -1,0 +1,20 @@
+{
+  "name": "PRATHOMIX — Intelligence Meets Execution",
+  "short_name": "PRATHOMIX",
+  "description": "AI-powered SaaS platform for modern businesses.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#0a9090",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en"
+}

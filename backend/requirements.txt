@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+supabase
+huggingface_hub
+openai
+google-generativeai
+httpx
+pydantic
+pyjwt
+email-validator
+# Optional — uncomment when ready:
+# stripe==9.12.0
+# resend==2.1.0
+# aiosmtplib==3.0.1
