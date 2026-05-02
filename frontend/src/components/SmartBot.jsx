@@ -82,7 +82,7 @@ export default function SmartBot() {
       const errMsg = {
         id: Date.now() + 1,
         role: 'bot',
-        text: 'Sorry, something went wrong. Please email prathomix@gmail.com or WhatsApp us.',
+        text: 'I could not reach NexusBot right now. Please try again in a moment, or contact us through the Contact page.',
         isError: true,
       }
       setMessages(prev => [...prev, errMsg])
@@ -192,7 +192,7 @@ export default function SmartBot() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKey}
-                placeholder="Ask about PRATHOMIX services, products, founder, or pricing…"
+                placeholder="Ask about PRATHOMIX…"
                 rows={1}
                 className="flex-1 resize-none bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 transition-all duration-200 max-h-28 overflow-y-auto font-body"
                 style={{ scrollbarWidth: 'none' }}
