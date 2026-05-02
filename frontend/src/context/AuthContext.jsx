@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
 const ADMIN_SESSION_KEY = 'prathomix_admin_session'
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || 'founder.prathomix@gmail.com'
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'Prathomix@Admin2026'
 
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null)
@@ -70,8 +72,22 @@ export function AuthProvider({ children }) {
     setIsAdmin(false)
   }
 
+  const signInAdmin = async (email, password) => {
+    if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+      throw new Error('Invalid admin credentials.')
+    }
+
+    const adminUser = { email: ADMIN_EMAIL }
+    try {
+      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(adminUser))
+    } catch {}
+    setUser(adminUser)
+    setIsAdmin(true)
+    return adminUser
+  }
+
   return (
-    <AuthContext.Provider value={{ user, isAdmin, loading, signOut }}>
+    <AuthContext.Provider value={{ user, isAdmin, loading, signInAdmin, signOut }}>
       {children}
     </AuthContext.Provider>
   )

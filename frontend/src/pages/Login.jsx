@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Zap, Mail, Lock, AlertCircle } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
+import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
   const [email, setEmail]     = useState('')
@@ -10,6 +11,7 @@ export default function Login() {
   const [error, setError]     = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { signInAdmin } = useAuth()
 
   const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'founder.prathomix@gmail.com'
   const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || 'Prathomix@Admin2026'
@@ -19,20 +21,21 @@ export default function Login() {
     setError('')
     setLoading(true)
 
-    if (email === adminEmail && password === adminPassword) {
-      try {
-        localStorage.setItem('prathomix_admin_session', JSON.stringify({ email }))
+    try {
+      if (email === adminEmail && password === adminPassword) {
+        await signInAdmin(email, password)
         navigate('/admin')
-      } finally {
-        setLoading(false)
+        return
       }
-      return
-    }
 
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
-    if (err) { setError(err.message); return }
-    navigate('/profile')
+      const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+      if (err) { setError(err.message); return }
+      navigate('/profile')
+    } catch (err) {
+      setError(err.message || 'Sign in failed.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
