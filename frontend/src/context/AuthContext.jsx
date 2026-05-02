@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 const AuthContext = createContext(null)
+const ADMIN_SESSION_KEY = 'prathomix_admin_session'
 
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null)
@@ -14,11 +15,23 @@ export function AuthProvider({ children }) {
     // Get current session safely
     const init = async () => {
       try {
+        const adminSession = localStorage.getItem(ADMIN_SESSION_KEY)
+        if (adminSession) {
+          const parsed = JSON.parse(adminSession)
+          if (parsed?.email) {
+            if (!mounted) return
+            setUser({ email: parsed.email })
+            setIsAdmin(true)
+            setLoading(false)
+            return
+          }
+        }
+
         const { data } = await supabase.auth.getSession()
         if (!mounted) return
         const u = data?.session?.user ?? null
         setUser(u)
-        setIsAdmin(u?.email === 'founder.prathomix@gmail.com')
+        setIsAdmin(u?.email === import.meta.env.VITE_ADMIN_EMAIL || u?.email === 'founder.prathomix@gmail.com')
       } catch (err) {
         console.warn('[AuthContext] getSession error:', err)
       } finally {
@@ -35,7 +48,7 @@ export function AuthProvider({ children }) {
         if (!mounted) return
         const u = session?.user ?? null
         setUser(u)
-        setIsAdmin(u?.email === 'founder.prathomix@gmail.com')
+        setIsAdmin(u?.email === import.meta.env.VITE_ADMIN_EMAIL || u?.email === 'founder.prathomix@gmail.com')
         setLoading(false)
       })
       subscription = data?.subscription
@@ -52,6 +65,9 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     try { await supabase.auth.signOut() } catch {}
+    try { localStorage.removeItem(ADMIN_SESSION_KEY) } catch {}
+    setUser(null)
+    setIsAdmin(false)
   }
 
   return (

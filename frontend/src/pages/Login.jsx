@@ -11,10 +11,24 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'founder.prathomix@gmail.com'
+  const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || 'Prathomix@Admin2026'
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
+
+    if (email === adminEmail && password === adminPassword) {
+      try {
+        localStorage.setItem('prathomix_admin_session', JSON.stringify({ email }))
+        navigate('/admin')
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+
     const { error: err } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (err) { setError(err.message); return }
@@ -37,6 +51,9 @@ export default function Login() {
             </div>
             <h1 className="font-display font-bold text-2xl text-white">Welcome back</h1>
             <p className="text-gray-500 text-sm mt-1">Sign in to your PRATHOMIX account</p>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Admin access: {adminEmail} / password from <code className="text-gray-300">VITE_ADMIN_PASSWORD</code>
+            </p>
           </div>
 
           {error && (
