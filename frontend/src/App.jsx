@@ -20,6 +20,7 @@ const Products       = lazy(() => import('./pages/Products'))
 const Founder        = lazy(() => import('./pages/Founder'))
 const AboutUs        = lazy(() => import('./pages/AboutUs'))
 const Login          = lazy(() => import('./pages/Login'))
+const ResetPassword  = lazy(() => import('./pages/ResetPassword'))
 const Register       = lazy(() => import('./pages/Register'))
 const UserProfile    = lazy(() => import('./pages/UserProfile'))
 const UserSettings   = lazy(() => import('./pages/UserSettings'))
@@ -74,6 +75,7 @@ function AppShell() {
               <Route path="/terms"        element={<Terms />}       />
               <Route path="/changelog"    element={<Changelog />}   />
               <Route path="/login"        element={<Login />}       />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/register"     element={<Register />}    />
               <Route path="/profile"  element={<PrivateRoute><UserProfile /></PrivateRoute>}    />
               <Route path="/settings" element={<PrivateRoute><UserSettings /></PrivateRoute>}   />

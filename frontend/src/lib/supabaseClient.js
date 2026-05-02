@@ -14,6 +14,8 @@ function createStubSupabaseClient() {
 			signOut: async () => ({ error: null }),
 			signInWithPassword: async () => ({ data: null, error: null }),
 			signUp: async () => ({ data: null, error: null }),
+			resetPasswordForEmail: async () => ({ data: null, error: null }),
+			updateUser: async () => ({ data: null, error: null }),
 		},
 		from: () => query(),
 		rpc: async () => ({ data: null, error: null }),

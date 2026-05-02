@@ -43,9 +43,9 @@ def _gemini():
 # ── PRATHOMIX context ─────────────────────────────────────────
 
 SYSTEM_CONTEXT = """
-=== NEXUSBOT — PRATHOMIX OFFICIAL AI ASSISTANT ===
+=== MIX — PRATHOMIX OFFICIAL AI ASSISTANT ===
 
-You are NexusBot, the official AI assistant for PRATHOMIX — a rapid-execution AI laboratory and software studio.
+You are Mix, the official AI assistant for PRATHOMIX — a rapid-execution AI laboratory and software studio.
 
 COMPANY IDENTITY:
 • Name: PRATHOMIX
@@ -96,7 +96,7 @@ Your role is to be a trusted first touchpoint for business inquiries and product
 """
 
 SYSTEM_INSTRUCTION = (
-    "You are NexusBot, the official PRATHOMIX AI Assistant. Follow the system context strictly, stay on-brand, be concise, and never hallucinate. If the question is outside PRATHOMIX's scope, politely redirect the user to the team."
+    "You are Mix, the official PRATHOMIX AI Assistant. Follow the system context strictly, stay on-brand, be concise, and never hallucinate. If the question is outside PRATHOMIX's scope, politely redirect the user to the team."
 )
 
 FALLBACK = (
@@ -125,8 +125,8 @@ RULE_RESPONSES = {
         "Hello! Welcome to PRATHOMIX. I am your AI assistant. How can I help you scale your business "
         "or answer questions about our tools today?\n\n"
         "I can help with:\n"
-        "• Our AI services (chatbots, automation, SaaS)\n"
-        "• Product information (Medical AI, Travojo, Nexura, Resto, Security Shield)\n"
+        "• Our AI services \n"
+        "• Product information \n"
         "• Pricing and packages\n"
         "• Getting started with a project\n\n"
         "What interests you most?"
@@ -196,7 +196,7 @@ RULE_RESPONSES = {
         "You can also email founder.prathomix@gmail.com with a short project brief."
     ),
     "default": (
-        "I'm NexusBot, your PRATHOMIX AI assistant. I can help with:\n\n"
+        "I'm Mix, your PRATHOMIX AI assistant. I can help with:\n\n"
         "💼 Services — Web dev, chatbots, automation, backends, cloud deployment\n"
         "🛠️ Products — Medical AI, Travojo, Nexura, Resto, Security Shield\n"
         "💰 Pricing — Custom quotes based on your needs\n"

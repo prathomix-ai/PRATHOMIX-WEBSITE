@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, X, Send, Cpu, User, Sparkles } from 'lucide-react'
-import api from '../lib/api'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 
@@ -70,19 +69,29 @@ export default function SmartBot() {
         userId = sessionData?.session?.user?.id || userId
       } catch {}
 
-      const { data } = await api.post('/chatbot/chat', {
-        message: text,
-        user_id: userId,
-        history,
-        session_id: sessionIdRef.current,
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chatbot/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: text,
+          user_id: userId,
+          history,
+          session_id: sessionIdRef.current,
+        }),
       })
+
+      if (!response.ok) {
+        throw new Error(`Chatbot request failed with status ${response.status}`)
+      }
+
+      const data = await response.json()
       const botMsg = { id: Date.now() + 1, role: 'bot', text: data.response }
       setMessages(prev => [...prev, botMsg])
     } catch (err) {
       const errMsg = {
         id: Date.now() + 1,
         role: 'bot',
-        text: 'I could not reach NexusBot right now. Please try again in a moment, or contact us through the Contact page.',
+        text: 'I could not reach Mix right now. Please try again in a moment, or contact us through the Contact page.',
         isError: true,
       }
       setMessages(prev => [...prev, errMsg])
@@ -135,7 +144,7 @@ export default function SmartBot() {
                 <Sparkles size={18} className="text-brand-200" />
               </div>
               <div>
-                <p className="font-display font-semibold text-sm text-white">NexusBot</p>
+                <p className="font-display font-semibold text-sm text-white">Mix</p>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse-slow" />
                   <p className="text-xs text-gray-300 font-mono">PRATHOMIX AI Assistant</p>

@@ -1,15 +1,19 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Zap, Mail, Lock, AlertCircle } from 'lucide-react'
+import { Zap, Mail, Lock, AlertCircle, ArrowLeft } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 
 export default function Login() {
   const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
+  const [resetEmail, setResetEmail] = useState('')
   const [error, setError]     = useState('')
+  const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [showReset, setShowReset] = useState(false)
   const navigate = useNavigate()
   const { signInAdmin } = useAuth()
 
@@ -19,6 +23,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setMessage('')
     setLoading(true)
 
     try {
@@ -38,6 +43,33 @@ export default function Login() {
     }
   }
 
+  const handleResetRequest = async (e) => {
+    e.preventDefault()
+    setError('')
+    setMessage('')
+    setResetLoading(true)
+
+    try {
+      const redirectTo = `${window.location.origin}/reset-password`
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo,
+      })
+
+      if (resetError) {
+        setError(resetError.message)
+        return
+      }
+
+      setMessage('Password reset link sent. Check your email and follow the link to set a new password.')
+      setShowReset(false)
+      setResetEmail('')
+    } catch (err) {
+      setError(err.message || 'Could not send reset email.')
+    } finally {
+      setResetLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-20">
       <motion.div
@@ -54,9 +86,6 @@ export default function Login() {
             </div>
             <h1 className="font-display font-bold text-2xl text-white">Welcome back</h1>
             <p className="text-gray-500 text-sm mt-1">Sign in to your PRATHOMIX account</p>
-            <p className="text-xs text-gray-500 mt-2 text-center">
-              Admin access: {adminEmail} / password from <code className="text-gray-300">VITE_ADMIN_PASSWORD</code>
-            </p>
           </div>
 
           {error && (
@@ -67,6 +96,17 @@ export default function Login() {
             >
               <AlertCircle size={16} className="flex-shrink-0" />
               {error}
+            </motion.div>
+          )}
+
+          {message && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2.5 p-3.5 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm mb-6"
+            >
+              <AlertCircle size={16} className="flex-shrink-0" />
+              {message}
             </motion.div>
           )}
 
@@ -115,6 +155,60 @@ export default function Login() {
             </button>
           </form>
 
+          {showReset ? (
+            <motion.form
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              onSubmit={handleResetRequest}
+              className="mt-6 space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-mono text-gray-400 mb-1.5 uppercase tracking-wider">Reset Email</label>
+                <div className="relative">
+                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="email"
+                    required
+                    value={resetEmail}
+                    onChange={e => setResetEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="input-field pl-10"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={resetLoading}
+                className="btn-primary w-full flex items-center justify-center gap-2"
+              >
+                {resetLoading ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+                    className="w-4 h-4 rounded-full border-2 border-transparent border-t-white"
+                  />
+                ) : 'Send Reset Link'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setShowReset(false); setError(''); setMessage('') }}
+                className="w-full flex items-center justify-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                <ArrowLeft size={14} /> Back to sign in
+              </button>
+            </motion.form>
+          ) : (
+            <div className="mt-6 flex items-center justify-between gap-3 text-sm flex-wrap">
+              <button
+                type="button"
+                onClick={() => { setShowReset(true); setError(''); setMessage('') }}
+                className="text-brand-300 hover:text-brand-200 underline underline-offset-4 transition-colors"
+              >
+                Forgot password?
+              </button>
+
           <div className="mt-6 flex flex-col items-center gap-3 text-sm">
             <p className="text-gray-500">
               Don't have an account?{' '}
@@ -123,6 +217,8 @@ export default function Login() {
               </Link>
             </p>
           </div>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
