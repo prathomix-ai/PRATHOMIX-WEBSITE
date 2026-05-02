@@ -1,15 +1,16 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Mail, MessageCircle, Github, Twitter, Linkedin } from 'lucide-react'
+import { Mail, MessageCircle, Github, Twitter, Linkedin, Instagram } from 'lucide-react'
 
 const LINKS = {
   Platform: [
     { to: '/services',     label: 'Services'      },
     { to: '/products',     label: 'Products'      },
-    { to: '/pricing',      label: 'Pricing'       },
+    // { to: '/pricing',      label: 'Pricing'       },
     { to: '/case-studies', label: 'Case Studies'  },
   ],
   Company: [
+    { to: '/about',  label: 'About'     },
     { to: '/founder', label: 'Founder'   },
     { to: '/blog',    label: 'Blog'      },
     { to: '/contact', label: 'Contact'   },
@@ -23,8 +24,9 @@ const LINKS = {
 
 const SOCIALS = [
   { icon: Github,   href: 'https://github.com/prathomix',            label: 'GitHub'   },
+  { icon: Instagram, href: 'https://www.instagram.com/prathomix',    label: 'Instagram' },
+  { icon: Linkedin, href: 'https://www.linkedin.com/company/prathomix',  label: 'LinkedIn' },
   { icon: Twitter,  href: 'https://twitter.com/prathomix',           label: 'Twitter'  },
-  { icon: Linkedin, href: 'https://linkedin.com/company/prathomix',  label: 'LinkedIn' },
 ]
 
 export default function Footer() {
@@ -45,8 +47,9 @@ export default function Footer() {
               <span className="font-display font-bold text-lg tracking-tight">PRATHOMIX</span>
             </div>
             <p className="text-sm text-gray-400 font-body leading-relaxed max-w-xs">
-              PRATHOMIX is a generative intelligence engine. We build simple AI tools, automation,
-              and chatbots that help teams move faster.
+              PRATHOMIX is a generative intelligence engine designed to solve real-world problems.
+              We build helpful AI tools and take custom orders to create exactly the software your
+              business needs to grow faster and save money.
             </p>
             <div className="flex items-center gap-3">
               {SOCIALS.map(({ icon: Icon, href, label }) => (

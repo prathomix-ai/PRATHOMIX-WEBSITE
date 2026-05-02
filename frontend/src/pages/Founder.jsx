@@ -6,26 +6,28 @@ import {
 } from 'lucide-react'
 
 const SKILLS = [
-  'Full-Stack Engineering', 'AI / LLM Integration',
-  'System Architecture', 'FastAPI + Python',
-  'React + TypeScript', 'Cloud Infrastructure',
-  'UX Strategy', 'Supabase / Postgres',
+  "AI / LLM Architecture",
+  "Full-Stack Engineering",
+  "React & Next.js",
+  "FastAPI + Python",
+  "Supabase / Postgres",
+  "Cloud Deployment",
 ]
 
 const LINKS = [
   { icon: Mail,     label: 'Personal',      href: 'mailto:founder.prathomix@gmail.com', value: 'founder.prathomix@gmail.com',  color: 'text-brand-300' },
   { icon: Mail,     label: 'Company',       href: 'mailto:prathomix@gmail.com',         value: 'prathomix@gmail.com',          color: 'text-ink-300'   },
   { icon: Github,   label: 'GitHub',        href: 'https://github.com/prathomix', value: 'github.com/prathomix',  color: 'text-gray-300'  },
-  { icon: Linkedin, label: 'LinkedIn',      href: '#',                             value: 'linkedin.com/in/pratham', color: 'text-sky-300' },
+  { icon: Linkedin, label: 'LinkedIn',      href: 'https://www.linkedin.com/company/prathomix',                             value: 'linkedin.com/in/pratham', color: 'text-sky-300' },
   { icon: Twitter,  label: 'Twitter',       href: '#',                             value: '@prathomix',             color: 'text-sky-400'   },
   { icon: Globe,    label: 'Website',       href: 'https://prathomix.xyz',        value: 'prathomix.xyz',          color: 'text-teal-300'  },
 ]
 
 const TIMELINE = [
-  { year: '2022', title: 'The Start',      desc: 'Built small AI tools that solved real business tasks.' },
-  { year: '2023', title: 'First Clients',  desc: 'Delivered 10+ projects across chatbots, SaaS, and integrations.' },
-  { year: '2024', title: 'PRATHOMIX',      desc: 'Started the studio to build practical AI products.' },
-  { year: '2025', title: 'Growing',        desc: 'Launched products and grew the team.' },
+  { year: 'Early 2025', title: 'The Shift to AI',      desc: "Realized that traditional software development was too slow. Started exploring Generative AI, modern web stacks, and focusing on logic building over manual syntax typing." },
+  { year: 'Late 2025', title: 'Rapid Prototyping',  desc: "Leveraged AI-assisted development to drastically speed up execution. Built the first functional prototypes, focusing on solving real problems through intuitive UI and solid architecture." },
+  { year: 'Early 2026', title: 'Mastering the Stack',      desc: "Moved from basic scripts to complex, full-stack applications like Nexura and Travojo. Integrated databases, authentication, and custom AI models into seamless user experiences." },
+  { year: 'Mid 2026', title: 'Launching PRATHOMIX',        desc: "Combined speed, modern tech, and AI efficiency to launch an independent laboratory. Now building custom software and automations for businesses that need fast, reliable results." },
 ]
 
 export default function Founder() {
@@ -50,11 +52,13 @@ export default function Founder() {
             </div>
             <div>
               <span className="tag mb-3 inline-flex"><Award size={10} /> Founder</span>
-              <h1 className="font-display font-bold text-3xl md:text-5xl text-white mb-2">Pratham</h1>
-              <p className="text-gradient font-display font-semibold text-lg mb-3">Builder of PRATHOMIX</p>
+              <h1 className="font-display font-bold text-3xl md:text-5xl text-white mb-2">Pratham Kumar Singh</h1>
+              <p className="text-gradient font-display font-semibold text-lg mb-3">Founder & AI Architect</p>
               <p className="text-gray-400 leading-relaxed max-w-xl">
-                I build software and AI systems. I started PRATHOMIX to make useful AI
-                simple for teams to adopt and scale.
+                I am a Full-Stack AI Engineer specializing in Generative AI and scalable web systems.
+                I founded PRATHOMIX to bridge the gap between complex machine learning technology 
+                and real-world business solutions. I build fast, secure, and smart tools that actually save
+                time.
               </p>
             </div>
           </div>
@@ -93,9 +97,9 @@ export default function Founder() {
             </div>
             <div className="space-y-3">
               {[
-                { icon: Rocket, text: 'Ship fast, learn fast.' },
-                { icon: Brain,  text: 'AI should be useful for every business.' },
-                { icon: Layers, text: 'Good architecture saves time later.' },
+                { icon: Rocket, text: "I believe in rapid prototyping. We move fast from idea to a working product without corporate delays." },
+                { icon: Brain,  text: "AI should not be complicated. I focus on building simple, intuitive interfaces hiding powerful engines underneath." },
+                { icon: Layers, text: "Good architecture matters. I write clean, modern code that grows seamlessly as your business scales." },
               ].map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-start gap-3">
                   <Icon size={15} className="text-brand-400 flex-shrink-0 mt-0.5" />

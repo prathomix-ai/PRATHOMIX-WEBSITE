@@ -2,12 +2,13 @@ import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, X, Send, Cpu, User, Sparkles } from 'lucide-react'
 import api from '../lib/api'
+import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/AuthContext'
 
 const WELCOME = {
   id: 'welcome',
   role: 'bot',
-  text: "Hi! I'm SmartBot, your PRATHOMIX assistant.\n\nAsk about services, products, or pricing, or tell me your problem.",
+  text: "Hello! Welcome to PRATHOMIX. I am your AI assistant. How can I help you scale your business or answer questions about our tools today?",
 }
 
 function ThinkingDots() {
@@ -32,6 +33,9 @@ export default function SmartBot() {
   const [thinking, setThinking] = useState(false)
   const bottomRef = useRef(null)
   const inputRef  = useRef(null)
+  const sessionIdRef = useRef(
+    (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now())
+  )
   const { user }  = useAuth()
 
   useEffect(() => {
@@ -51,10 +55,26 @@ export default function SmartBot() {
     setMessages(prev => [...prev, userMsg])
     setThinking(true)
 
+    const history = messages
+      .filter(msg => msg.id !== 'welcome' && !msg.isError)
+      .slice(-6)
+      .map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.text,
+      }))
+
     try {
+      let userId = user?.id || null
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        userId = sessionData?.session?.user?.id || userId
+      } catch {}
+
       const { data } = await api.post('/chatbot/chat', {
         message: text,
-        user_id: user?.id || null,
+        user_id: userId,
+        history,
+        session_id: sessionIdRef.current,
       })
       const botMsg = { id: Date.now() + 1, role: 'bot', text: data.response }
       setMessages(prev => [...prev, botMsg])
@@ -115,10 +135,10 @@ export default function SmartBot() {
                 <Sparkles size={18} className="text-brand-200" />
               </div>
               <div>
-                <p className="font-display font-semibold text-sm text-white">SmartBot</p>
+                <p className="font-display font-semibold text-sm text-white">NexusBot</p>
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse-slow" />
-                  <p className="text-xs text-gray-300 font-mono">AI powered</p>
+                  <p className="text-xs text-gray-300 font-mono">PRATHOMIX AI Assistant</p>
                 </div>
               </div>
               <button onClick={() => setOpen(false)} className="ml-auto p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
@@ -172,7 +192,7 @@ export default function SmartBot() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKey}
-                placeholder="Ask a question…"
+                placeholder="Ask about PRATHOMIX services, products, founder, or pricing…"
                 rows={1}
                 className="flex-1 resize-none bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 transition-all duration-200 max-h-28 overflow-y-auto font-body"
                 style={{ scrollbarWidth: 'none' }}

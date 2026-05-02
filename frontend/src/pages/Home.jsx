@@ -16,35 +16,35 @@ const fadeUp = (delay = 0) => ({
 const PROBLEMS = [
   {
     icon: Brain,
-    problem: 'Too much manual work',
-    solution: 'We automate repeat tasks so your team can focus on real work.',
+    problem: 'Drowning in manual work?',
+    solution: 'We build AI automations that handle repetitive tasks, freeing your team to do the real work.',
     color: 'from-brand-400 to-teal-400',
   },
   {
     icon: TrendingUp,
     problem: 'Growth is hard without systems',
-    solution: 'We build SaaS systems that scale with your business.',
+    solution: 'We build custom software and SaaS systems that grow seamlessly with your business.',
     color: 'from-ink-400 to-violet-400',
   },
   {
     icon: MessageSquare,
-    problem: 'Customer questions get missed',
-    solution: 'We build smart chatbots that answer fast and hand off to people.',
+    problem: 'Losing leads to slow replies?',
+    solution: 'We deploy smart AI chatbots that answer instantly 24/7 and smartly hand off to humans.',
     color: 'from-amber-400 to-orange-400',
   },
   {
     icon: Code2,
     problem: 'Old tech slows you down',
-    solution: 'We modernize your stack with React, FastAPI, and cloud tools.',
+    solution: 'We upgrade your business with modern, lightning-fast technology that never crashes.',
     color: 'from-rose-400 to-pink-400',
   },
 ]
 
 const STATS = [
-  { value: '10x', label: 'Faster Delivery' },
-  { value: '99%', label: 'Happy Clients'   },
-  { value: '50+', label: 'Projects Done'   },
-  { value: '24h', label: 'Reply Time'      },
+  { value: 'Latest', label: 'AI TECHNOLOGY' },
+  { value: 'Modern', label: 'TECH STACK'   },
+  { value: '24/7', label: 'AUTOMATION'   },
+  { value: '24h', label: 'SUPPORT TIME'      },
 ]
 
 export default function Home() {
@@ -63,12 +63,22 @@ export default function Home() {
           <span className="text-gradient">Meets Execution</span>
         </motion.h1>
 
-        <motion.p {...fadeUp(0.35)} className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-body">
-          PRATHOMIX is a generative intelligence engine. We build simple AI products,
-          automation, and chatbots that help businesses work faster.
-        </motion.p>
+        <motion.p
+         variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={2}
+        className="text-lg md:text-xl leading-relaxed max-w-3xl"
+        style={{ color: '#94a3b8' }}
+      >
+        PRATHOMIX is a{' '}
+        <span style={{ color: '#6ee7b7', fontWeight: 600 }}> Generative Intelligence Engine .</span>
+        {' '}designed to solve real-world problems. We build helpful AI tools and take custom orders to
+        create exactly the software your business needs to grow faster and save money.
+      </motion.p>
+        
 
-        <motion.div {...fadeUp(0.5)} className="flex flex-wrap items-center justify-center gap-4">
+        <motion.div {...fadeUp(0.5)} className="flex flex-wrap items-center justify-center gap-4 mt-3">
           <Link to="/services" className="btn-primary flex items-center gap-2">
             Explore Services <ArrowRight size={16} />
           </Link>

@@ -18,6 +18,7 @@ const Home           = lazy(() => import('./pages/Home'))
 const Services       = lazy(() => import('./pages/Services'))
 const Products       = lazy(() => import('./pages/Products'))
 const Founder        = lazy(() => import('./pages/Founder'))
+const AboutUs        = lazy(() => import('./pages/AboutUs'))
 const Login          = lazy(() => import('./pages/Login'))
 const Register       = lazy(() => import('./pages/Register'))
 const UserProfile    = lazy(() => import('./pages/UserProfile'))
@@ -62,6 +63,7 @@ function AppShell() {
               <Route path="/"             element={<Home />}        />
               <Route path="/services"     element={<Services />}    />
               <Route path="/products"     element={<Products />}    />
+              <Route path="/about"        element={<AboutUs />}     />
               <Route path="/founder"      element={<Founder />}     />
               <Route path="/pricing"      element={<Pricing />}     />
               <Route path="/contact"      element={<Contact />}     />
