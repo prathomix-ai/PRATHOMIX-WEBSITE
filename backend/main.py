@@ -20,6 +20,13 @@ from api.search    import router as search_router
 
 load_dotenv()
 
+DEFAULT_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://prathomix.vercel.app",
+    "https://prathomix.xyz",
+    "https://www.prathomix.xyz",
+]
+
 app = FastAPI(
     title="PRATHOMIX API",
     description=(
@@ -34,10 +41,14 @@ app = FastAPI(
     license_info={"name": "MIT"},
 )
 
-ALLOWED_ORIGINS = os.getenv(
-    "ALLOWED_ORIGINS",
-    "http://localhost:5173,http://localhost:3000,https://prathomix.xyz"
-).split(",")
+ALLOWED_ORIGINS = [
+    origin.rstrip("/")
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        ",".join(DEFAULT_ALLOWED_ORIGINS),
+    ).split(",")
+    if origin.strip()
+]
 
 app.add_middleware(CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS, allow_credentials=True,
