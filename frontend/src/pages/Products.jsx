@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Store, Navigation, Code, Shield, FileText, ShoppingCart, Stethoscope, ExternalLink } from 'lucide-react'
+import { Store, Navigation, Code, Shield, FileText, ShoppingCart, Stethoscope, Scissors, ExternalLink } from 'lucide-react'
 
 const PRODUCTS = [
   {
