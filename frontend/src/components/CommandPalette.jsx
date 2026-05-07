@@ -23,7 +23,7 @@ const COMMANDS = [
   { label: 'Create Account', icon: User,          to: '/register'    },
   { label: 'My Profile',     icon: User,          to: '/profile'     },
   { label: 'Settings',       icon: User,          to: '/settings'    },
-  { label: 'Admin Dashboard',icon: LayoutDashboard,to: '/admin'      },
+  //{ label: 'Admin Dashboard',icon: LayoutDashboard,to: '/admin'      },
 ]
 
 export default function CommandPalette() {
