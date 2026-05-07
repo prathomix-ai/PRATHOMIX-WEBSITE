@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Zap, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
+import { useToast } from '../components/Toast'
 
 export default function Register() {
   const [name, setName]       = useState('')
@@ -12,21 +13,55 @@ export default function Register() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { toast } = useToast()
+
+  const isAccountExistsError = (err) => {
+    const message = `${err?.message || ''} ${err?.error_description || ''}`.toLowerCase()
+    return (
+      message.includes('user already registered') ||
+      message.includes('email already registered') ||
+      message.includes('already exists') ||
+      message.includes('already been registered') ||
+      err?.status === 400 ||
+      err?.status === 409
+    )
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setSuccess(false)
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
     setLoading(true)
-    const { error: err } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name } },
-    })
-    setLoading(false)
-    if (err) { setError(err.message); return }
-    setSuccess(true)
-    setTimeout(() => navigate('/login'), 2500)
+    try {
+      const { error: err } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name } },
+      })
+
+      if (err) {
+        if (isAccountExistsError(err)) {
+          toast.error('An account already exists with this email. Please log in.')
+          return
+        }
+
+        setError(err.message)
+        return
+      }
+
+      setSuccess(true)
+      setTimeout(() => navigate('/login'), 2500)
+    } catch (err) {
+      if (isAccountExistsError(err)) {
+        toast.error('An account already exists with this email. Please log in.')
+        return
+      }
+
+      setError(err.message || 'Sign up failed.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
