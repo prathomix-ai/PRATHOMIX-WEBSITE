@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Store, Navigation, Code, Shield, FileText, ShoppingCart, Stethoscope, Scissors, ExternalLink } from 'lucide-react'
+import { Store, Navigation, Code, Shield, FileText, ShoppingCart, Stethoscope, Scissors, Activity, ExternalLink } from 'lucide-react'
 
 const PRODUCTS = [
   {
@@ -26,22 +26,22 @@ const PRODUCTS = [
     features: ['Smart Routing maps', 'AI Travel Bot', 'Hyper-local Safety', 'Live Navigation'],
   },
   {
-    icon: Code,
-    name: 'Nexura',
-    tagline: 'AI Coding Practice Lab',
-    description: 'An animated, highly interactive platform for mastering Python and system logic with gamified practice modules.',
+    icon: Activity,
+    name: 'Physio AI',
+    tagline: 'Smart AI Physiotherapy Platform',
+    description: 'A smart healthcare app that tracks patient exercises using phone cameras, offers voice booking, and makes physiotherapy easy for everyone.',
     status: 'Upcoming',
-    badge: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
-    color: 'from-blue-400 to-cyan-400',
+    badge: 'bg-teal-500/15 text-teal-400 border-teal-500/20',
+    color: 'from-emerald-400 to-teal-400',
     link: '#',
-    features: ['Python Focused', 'Logic Building', 'Gamified UI', 'Instant Feedback'],
+    features: ['Smart Posture Tracker', '3D Body Pain Mapper', 'Voice Note Booking', 'AI Doctor Bot'],
   },
   {
     icon: Shield,
     name: 'Security Shield',
     tagline: 'Real-time Phishing Protection',
     description: 'An AI-powered browser extension that detects typosquatting and blocks malicious phishing sites instantly.',
-    status: 'Live',
+    status: 'Beta',
     badge: 'bg-rose-500/15 text-rose-400 border-rose-500/20',
     color: 'from-rose-400 to-red-400',
     link: '#',
@@ -52,7 +52,7 @@ const PRODUCTS = [
     name: 'DocuMind AI',
     tagline: 'Chat with your PDFs',
     description: 'Upload multiple documents and ask questions in natural language. Powered by powerful open-source models.',
-    status: 'Live',
+    status: 'Beta',
     badge: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
     color: 'from-amber-400 to-orange-400',
     link: '#',
@@ -63,7 +63,7 @@ const PRODUCTS = [
     name: 'URBAN CUTS',
     tagline: 'Smart Salon Management System',
     description: 'A seamless appointment booking platform designed for modern salons, featuring real-time scheduling and a beautiful UI.',
-    status: 'Beta',
+    status: 'Live',
     badge: 'bg-pink-500/15 text-pink-400 border-pink-500/20',
     color: 'from-pink-400 to-rose-400',
     link: 'https://prathomixsalon.netlify.app/',
@@ -74,7 +74,7 @@ const PRODUCTS = [
     name: 'Medical AI Assistant', 
     tagline: 'AI-Powered Medical Diagnostician', 
     description: 'An advanced AI that analyzes messy prescriptions and complex lab reports, explaining them simply in English, Hindi, or Hinglish.', 
-    status: 'Live', 
+    status: 'Beta', 
     badge: 'bg-rose-500/15 text-rose-400 border-rose-500/20', 
     color: 'from-rose-400 to-red-400', 
     link: '#', 
