@@ -1,471 +1,697 @@
 """
-SmartBot AI endpoint — HuggingFace (fast intent parsing) + Gemini (deep reasoning).
+Mix Agent v3 — Smart Auto-Switching API Router
+================================================
+• Gemini quota done  → auto-switch to HuggingFace
+• HuggingFace quota done → auto-switch back to Gemini
+• Both down → graceful fallback message (never crashes)
+• SSE streaming word-by-word on port 10000
 
-Flow:
-  1. Build conversation context from history (multi-turn memory)
-  2. Parse intent with HuggingFace LLaMA-3 (< 200ms)
-  3. If complex_problem → escalate to Gemini
-  4. Check Redis cache before expensive AI calls
-  5. Fallback to WhatsApp/email if AI cannot resolve
-  6. Log all interactions to Supabase chatbot_logs
+Run: uvicorn main:app --reload --port 10000
 """
-import os
-import json
+
+from __future__ import annotations
+
+import asyncio
 import hashlib
+import json
+import os
 import re
+import time
+import uuid
+from collections import deque
+from typing import AsyncGenerator, Literal
+
 import httpx
-from fastapi import APIRouter, HTTPException, Depends, Request
-from pydantic import BaseModel
 from dotenv import load_dotenv
-from middleware.rate_limit import RateLimiter
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+
 from database.supabase_client import log_query
-from utils.logger import get_logger
+from api.search import PRODUCTS_DATA, SERVICES_DATA
+from middleware.rate_limit import RateLimiter
 from utils.helpers import sanitise_query
+from utils.logger import get_logger
 
 load_dotenv()
-
+log     = get_logger("mix-agent-v3")
 router  = APIRouter(prefix="/chatbot", tags=["chatbot"])
-log     = get_logger("chatbot")
-limiter = RateLimiter(max_calls=30, period_seconds=60)
-HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash-latest")
+limiter = RateLimiter(max_calls=40, period_seconds=60)
 
-# ── Lazy client factories ────────────────────────────────────
+# ── Keys & Models ─────────────────────────────────────────────
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+HF_API_KEY     = os.getenv("HUGGINGFACE_API_KEY", "")
+HF_MODEL       = os.getenv("HUGGINGFACE_MODEL", "mistralai/Mistral-7B-Instruct-v0.3")
+WHATSAPP_LINK  = os.getenv("WHATSAPP_LINK", "https://wa.me/919887754009")
 
-def _gemini():
-    import google.generativeai as genai
-    if not GEMINI_API_KEY:
-        raise RuntimeError("GEMINI_API_KEY is not set")
-    genai.configure(api_key=GEMINI_API_KEY)
-    return genai.GenerativeModel(GEMINI_MODEL)
+HF_URL = "https://router.huggingface.co/novita/v3/openai/chat/completions"
 
-# ── PRATHOMIX context ─────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════
+# 1.  SMART API ROUTER
+#     Automatically rotates between Gemini ↔ HuggingFace
+# ═══════════════════════════════════════════════════════════════
 
-SYSTEM_CONTEXT = """
-=== MIX — PRATHOMIX OFFICIAL AI ASSISTANT ===
+Provider = Literal["gemini", "huggingface"]
 
-You are Mix, the official AI assistant for PRATHOMIX — a rapid-execution AI laboratory and software studio.
+QUOTA_KEYWORDS = [
+    "quota", "rate limit", "exceeded", "429", "503",
+    "resource_exhausted", "RESOURCE_EXHAUSTED",
+    "not found", "404", "model not found", "rate_limit",
+    "too many requests", "billing", "weekly limit",
+]
 
-COMPANY IDENTITY:
-• Name: PRATHOMIX
-• Mission: We don't just write code; we deliver results. We build custom SaaS, AI automations, and modern web apps to save businesses time and money.
-• Founder: Pratham Kumar Singh, an AI Architect and Full-Stack Engineer specializing in rapid prototyping and scalable systems.
 
-CORE CAPABILITIES & SERVICES:
-1. Web Development — Modern, scalable web applications (React, Vue, etc.)
-2. Smart AI Chatbots — Custom conversational AI using Groq + Gemini for intent parsing and reasoning
-3. Workflow Automation — AI-powered process automation to eliminate manual bottlenecks
-4. Secure Backend Setup — FastAPI, Supabase, PostgreSQL, with enterprise-grade security
-5. Cloud Deployment — Docker containerization, Kubernetes orchestration, and multi-cloud strategies
+def _is_quota_err(exc: Exception) -> bool:
+    return any(k.lower() in str(exc).lower() for k in QUOTA_KEYWORDS)
 
-LIVE & BETA PRODUCTS:
-1. Medical AI Assistant — Analyzes prescriptions and medical reports, explains findings in English, Hindi, and Hinglish
-2. Travojo — A hyper-local safety and travel ecosystem with real-time alerts and personalized recommendations
-3. Nexura — An animated, interactive AI coding practice lab for developers and learners
-4. PRATHOMIX Resto — Next-generation restaurant AI SaaS with smart ordering, inventory, and customer analytics
-5. Security Shield — Real-time phishing detection, typosquatting protection, and zero-trust security
 
-TONE & COMMUNICATION STYLE:
-- Professional, highly intelligent, concise, and genuinely helpful
-- Warm and approachable; speak as a trusted advisor
-- Always provide context and explain *why*, not just *what*
-- For business questions, think in terms of business outcomes and ROI
-- Be confident but never arrogant; admit limitations gracefully
+class SmartAPIRouter:
+    """
+    Circular failover router.
 
-CONVERSATION GUIDELINES:
-1. ALWAYS map user problems to PRATHOMIX's services, products, or expertise
-2. For complex business problems: Structure your answer as (Challenge → Solution → Timeline/CTA)
-3. NEVER HALLUCINATE — if asked about topics outside PRATHOMIX's scope, politely redirect
-4. NEVER MAKE UP PRICING — always direct to /pricing page or suggest contacting the founder
-5. When uncertain, default to: "I specialize in PRATHOMIX's services and AI technology. For anything else, please contact our team."
+    States: ok | cooling
+    When a provider gets a quota/rate-limit error it enters
+    COOLING for cooldown_secs. The other provider is used.
+    After cooldown, the provider is retried automatically.
+    """
 
-CONTACT INFORMATION:
-• General Inquiries: prathomix@gmail.com
-• Founder / Business Discussions: founder.prathomix@gmail.com
-• WhatsApp: {whatsapp}
-• Response Time: Within 24 hours
+    COOLDOWN = 120   # seconds before retrying a failed provider
 
-KNOWLEDGE BOUNDARIES:
-✓ DO discuss: PRATHOMIX services, products, company mission, technology stack, deployment strategies, AI/ML approaches
-✗ DON'T discuss: Unrelated topics (politics, sports, celebrity gossip, general trivia)
-✗ DON'T claim: That you can build anything (be honest about constraints and timelines)
-✗ DON'T speculate: On pricing, timelines, or capabilities outside PRATHOMIX's proven track record
+    def __init__(self):
+        self._state: dict[Provider, dict] = {
+            "gemini":      {"status": "ok", "fail_at": 0.0, "fails": 0},
+            "huggingface": {"status": "ok", "fail_at": 0.0, "fails": 0},
+        }
+        self._last: Provider = "huggingface"  # so first choice is gemini
 
-Your role is to be a trusted first touchpoint for business inquiries and product questions.
+    # ── internal ─────────────────────────────────────────────
+    def _cooling(self, p: Provider) -> bool:
+        s = self._state[p]
+        if s["status"] == "cooling":
+            if time.monotonic() - s["fail_at"] >= self.COOLDOWN:
+                s["status"] = "ok"
+                log.info(f"[Router] {p} cooldown expired → ok")
+                return False
+            return True
+        return False
+
+    # ── public API ────────────────────────────────────────────
+    def fail(self, p: Provider, reason: str = ""):
+        s = self._state[p]
+        s.update(status="cooling", fail_at=time.monotonic(), fails=s["fails"] + 1)
+        log.warning(
+            f"[Router] {p} → COOLING | reason={reason[:80]} "
+            f"| fail#{s['fails']} | retry in {self.COOLDOWN}s"
+        )
+
+    def ok(self, p: Provider):
+        s = self._state[p]
+        if s["status"] != "ok":
+            s.update(status="ok", fails=0)
+            log.info(f"[Router] {p} → OK (recovered)")
+
+    def pick(self) -> Provider | None:
+        """Return best provider or None if both are cooling."""
+        preferred: Provider = "gemini" if self._last == "huggingface" else "huggingface"
+        other:     Provider = "huggingface" if preferred == "gemini" else "gemini"
+        if not self._cooling(preferred):
+            return preferred
+        if not self._cooling(other):
+            return other
+        return None
+
+    def force_ok(self, p: Provider):
+        self._state[p].update(status="ok", fails=0)
+
+    def status(self) -> dict:
+        def _info(p: Provider) -> dict:
+            s = self._state[p]
+            rem = max(0.0, self.COOLDOWN - (time.monotonic() - s["fail_at"]))
+            return {
+                "status":    s["status"],
+                "failures":  s["fails"],
+                "cooldown_remaining_secs": round(rem) if s["status"] == "cooling" else 0,
+            }
+        return {"gemini": _info("gemini"), "huggingface": _info("huggingface")}
+
+
+_router = SmartAPIRouter()
+
+
+# ═══════════════════════════════════════════════════════════════
+# 2.  SESSION MEMORY
+# ═══════════════════════════════════════════════════════════════
+
+class SessionStore:
+    MAX = 12
+    TTL = 3600
+
+    def __init__(self):
+        self._s: dict[str, dict] = {}
+
+    def _prune(self):
+        now = time.time()
+        for k in [k for k, v in self._s.items() if now - v["t"] > self.TTL]:
+            del self._s[k]
+
+    def _get(self, sid: str) -> deque:
+        self._prune()
+        if sid not in self._s:
+            self._s[sid] = {"d": deque(maxlen=self.MAX), "t": time.time()}
+        self._s[sid]["t"] = time.time()
+        return self._s[sid]["d"]
+
+    def add(self, sid: str, role: str, content: str):
+        self._get(sid).append({"role": role, "content": content})
+
+    def history_text(self, sid: str) -> str:
+        turns = list(self._get(sid))[-6:]
+        return "\n".join(
+            ("User" if t["role"] == "user" else "Mix") + ": " + t["content"]
+            for t in turns
+        )
+
+    def gemini_history(self, sid: str) -> list[dict]:
+        return [
+            {
+                "role": "user" if t["role"] == "user" else "model",
+                "parts": [{"text": t["content"]}],
+            }
+            for t in self._get(sid)
+        ]
+
+    def hf_messages(self, sid: str, user_msg: str, system: str) -> list[dict]:
+        msgs = [{"role": "system", "content": system}]
+        for t in list(self._get(sid))[-6:]:
+            msgs.append({"role": t["role"], "content": t["content"]})
+        msgs.append({"role": "user", "content": user_msg})
+        return msgs
+
+    def clear(self, sid: str):
+        if sid in self._s:
+            self._s[sid]["d"].clear()
+
+
+_sessions = SessionStore()
+
+
+# ═══════════════════════════════════════════════════════════════
+# 3.  SYSTEM PERSONA
+# ═══════════════════════════════════════════════════════════════
+
+SYSTEM = f"""
+=== MIX — PRATHOMIX AI AGENT v3 ===
+
+You are Mix, the official AI agent for PRATHOMIX — a rapid-execution AI laboratory.
+
+COMPANY:
+• Founder: Pratham Kumar Singh — AI Architect & Full-Stack Engineer
+• Mission: Engineer outcomes. Custom SaaS, AI automations, modern web apps.
+
+PRODUCTS:
+• Travojo — Hyper-local travel safety map, real-time alerts
+• Nexura — Interactive AI coding practice lab for developers
+• Medical AI Assistant — Prescriptions in English/Hindi/Hinglish
+• PRATHOMIX Resto — Restaurant AI SaaS (ordering, inventory, analytics)
+• Security Shield — Phishing detection, typosquatting protection
+
+SERVICES:
+Web Development (React + FastAPI) | AI Chatbot Development |
+Workflow Automation | Secure Backend (Supabase + PostgreSQL) |
+Cloud Deployment (Docker, Kubernetes)
+
+RULES:
+1. Professional, concise — under 180 words unless user asks for detail
+2. Complex answers: Challenge → Solution → CTA
+3. NEVER invent pricing → /pricing or founder.prathomix@gmail.com
+4. NEVER hallucinate features
+5. Off-topic → politely redirect to PRATHOMIX scope
+6. Always end with a clear next step
+
+CONTACT:
+    Company: prathomix@gmail.com
+    Founder: founder.prathomix@gmail.com
+    WhatsApp: {WHATSAPP_LINK}
 """
 
-SYSTEM_INSTRUCTION = (
-    "You are Mix, the official PRATHOMIX AI Assistant. Follow the system context strictly, stay on-brand, be concise, and never hallucinate. If the question is outside PRATHOMIX's scope, politely redirect the user to the team."
+FALLBACK_MSG = (
+    "I am having trouble reaching my AI engine right now.\n\n"
+    f"📧  prathomix@gmail.com\n"
+    f"💬  WhatsApp: {WHATSAPP_LINK}\n"
+    f"👨‍💼  founder.prathomix@gmail.com\n\n"
+    "We respond within 24 hours."
 )
 
-FALLBACK = (
-    "I want to make sure you get the right answer.\n\n"
-    "I specialize in PRATHOMIX's services and AI technology. For anything outside this scope, "
-    "please reach out to our team directly:\n\n"
-    "📧 Email: prathomix@gmail.com\n"
-    "💬 WhatsApp: {whatsapp}\n"
-    "👨‍💼 Founder: founder.prathomix@gmail.com\n\n"
-    "We reply within 24 hours."
-)
 
-SIMPLE_INTENTS = {
-    "greeting",
-    "pricing_query",
-    "product_info",
-    "service_info",
-    "contact_request",
-    "about_info",
-    "founder_info",
-    "getting_started",
-}
+# ═══════════════════════════════════════════════════════════════
+# 4.  RULE ENGINE  (zero-latency, zero API cost)
+# ═══════════════════════════════════════════════════════════════
 
-RULE_RESPONSES = {
-    "greeting": (
-        "Hello! Welcome to PRATHOMIX. I am your AI assistant. How can I help you scale your business "
-        "or answer questions about our tools today?\n\n"
-        "I can help with:\n"
-        "• Our AI services \n"
-        "• Product information \n"
-        "• Pricing and packages\n"
-        "• Getting started with a project\n\n"
-        "What interests you most?"
+_RULES: list[tuple[str, str, str]] = [
+    (
+        r"^(hi|hello|hey|hii|yo|hola|greetings|good\s?(morning|afternoon|evening))[!., ]*$",
+        "greeting",
+        "Hello, I’m Mix, the PRATHOMIX AI assistant. I can help with services, products, founder info, contact details, and project scoping. What do you want to build?",
     ),
-    "pricing": (
-        "Pricing depends on your scope, complexity, and timeline. We offer flexible engagement models:\n\n"
-        "• Hourly Consulting: For quick audits and strategy sessions\n"
-        "• Fixed-Scope Projects: For well-defined builds (chatbots, SaaS MVPs, automation)\n"
-        "• Retainer Partnerships: For ongoing development and optimization\n\n"
-        "Visit /pricing for our current plans, or let me know your goal and team size for a custom quote.\n"
-        "Contact founder.prathomix@gmail.com for enterprise discussions."
+    (
+        r"\b(price|pricing|cost|plan|package|quote|how much|rate|budget)\b",
+        "pricing_query",
+        "Pricing is scoped to your needs. Send your requirements and budget to founder.prathomix@gmail.com or use /contact for a custom quote.",
     ),
-    "services": (
-        "🚀 PRATHOMIX Core Services:\n\n"
-        "1️⃣ Web Development — Modern, scalable React/Vue apps with FastAPI backends\n"
-        "2️⃣ Smart AI Chatbots — Custom conversational AI (Groq + Gemini), 24/7 automation\n"
-        "3️⃣ Workflow Automation — AI-powered process optimization, eliminate manual work\n"
-        "4️⃣ Secure Backend Setup — FastAPI, Supabase, PostgreSQL with enterprise security\n"
-        "5️⃣ Cloud Deployment — Docker, Kubernetes, multi-cloud strategies\n\n"
-        "Tell me what you want to build (chatbot, automation, SaaS app, integration, security audit), "
-        "and I'll recommend the best fit."
+    (
+        r"\b(contact|email|whatsapp|phone|reach|connect|talk to|get in touch)\b",
+        "contact_request",
+        f"For general questions, contact PRATHOMIX at prathomix@gmail.com. For founder-specific questions, use founder.prathomix@gmail.com. WhatsApp: {WHATSAPP_LINK}. You can also use /contact, and we reply within 24 hours.",
     ),
-    "products": (
-        "🛠️ PRATHOMIX Live & Beta Products:\n\n"
-        "🏥 Medical AI Assistant — Analyzes prescriptions/medical reports, explains in English/Hindi/Hinglish\n"
-        "✈️ Travojo — Hyper-local travel safety ecosystem with real-time alerts\n"
-        "💻 Nexura — Interactive AI coding practice lab for developers and learners\n"
-        "🍽️ PRATHOMIX Resto — Next-gen restaurant AI SaaS (ordering, inventory, analytics)\n"
-        "🛡️ Security Shield — Real-time phishing detection and typosquatting protection\n\n"
-        "Which product interests you? I can explain any in detail."
+    (
+        r"\b(get started|start a project|want to build|how do i begin)\b",
+        "getting_started",
+        "Getting started is simple: share your goal on /contact, add your timeline and budget, and we’ll scope the build fast. You can also email founder.prathomix@gmail.com with a short brief.",
     ),
-    "contact": (
-        "📧 General Questions: prathomix@gmail.com\n"
-        "👨‍💼 Business/Founder: founder.prathomix@gmail.com\n"
-        "💬 WhatsApp: {whatsapp}\n\n"
-        "Also, visit our Contact page at /contact to fill out a project inquiry form.\n"
-        "We respond within 24 hours."
+    (
+        r"\b(founder|owner|who made|who built|pratham|who is pratham)\b",
+        "founder_info",
+        "PRATHOMIX was founded by Pratham Kumar Singh, a full-stack AI engineer focused on fast, secure, and practical software delivery. Founder email: founder.prathomix@gmail.com.",
     ),
-    "about": (
-        "👋 About PRATHOMIX:\n\n"
-        "We are a rapid-execution AI laboratory and software studio founded by Pratham Kumar Singh, "
-        "an AI Architect and Full-Stack Engineer.\n\n"
-        "Our Promise: We don't just write code; we deliver results. We build custom SaaS, AI automations, "
-        "and modern web apps to save businesses time and money.\n\n"
-        "Core Strengths:\n"
-        "✓ Rapid prototyping & MVP delivery\n"
-        "✓ AI-powered automation & chatbots\n"
-        "✓ Full-stack development (React + FastAPI + Supabase)\n"
-        "✓ Enterprise-grade security & deployment\n\n"
-        "Want to learn more? Visit our /about page or contact founder.prathomix@gmail.com"
+]
+
+PRODUCT_GUIDES: dict[str, str] = {
+    "travojo": (
+        "Travojo is our travel and safety ecosystem. It combines intelligent maps, live navigation, "
+        "AI travel assistance, and hyper-local safety for smarter trips."
     ),
-    "founder_info": (
-        "👨‍💻 About Pratham Kumar Singh (Founder):\n\n"
-        "Pratham is an AI Architect and Full-Stack Engineer with expertise in:\n"
-        "• Rapid prototyping and scalable system design\n"
-        "• AI/ML model integration (Groq, Gemini, HuggingFace)\n"
-        "• Modern full-stack development (React, FastAPI, Supabase, Docker)\n"
-        "• Building production-grade AI applications\n\n"
-        "He founded PRATHOMIX to solve real business problems with AI and custom software.\n\n"
-        "Want to chat with Pratham directly? Email: founder.prathomix@gmail.com"
+    "nexusbot": (
+        "NexusBot is our multi-model chatbot engine built for fast responses and deeper reasoning."
     ),
-    "getting_started": (
-        "To get started with PRATHOMIX:\n\n"
-        "1. Visit the Contact page and share your goal\n"
-        "2. Tell us what you want to build, your timeline, and your budget\n"
-        "3. We will recommend the best service, stack, and delivery plan\n\n"
-        "You can also email founder.prathomix@gmail.com with a short project brief."
+    "physio ai": (
+        "Physio AI is a smart healthcare app that tracks exercises with phone cameras and supports voice booking."
     ),
-    "default": (
-        "I'm Mix, your PRATHOMIX AI assistant. I can help with:\n\n"
-        "💼 Services — Web dev, chatbots, automation, backends, cloud deployment\n"
-        "🛠️ Products — Medical AI, Travojo, Nexura, Resto, Security Shield\n"
-        "💰 Pricing — Custom quotes based on your needs\n"
-        "🤝 Getting Started — How to work with PRATHOMIX\n\n"
-        "What would you like to know?"
+    "security shield": (
+        "Security Shield is an AI-powered browser extension that detects typosquatting and blocks phishing sites."
+    ),
+    "documind ai": (
+        "DocuMind AI lets users upload PDFs and ask questions in natural language."
+    ),
+    "urban cuts": (
+        "URBAN CUTS is a smart salon management system for bookings, scheduling, and staff workflows."
+    ),
+    "medical ai assistant": (
+        "Medical AI Assistant explains prescriptions and lab reports in English, Hindi, or Hinglish."
     ),
 }
 
+PRODUCT_PATTERN = re.compile(
+    r"\b(travojo|nexusbot|flowmind|insightai|vaultauth|sprintkit|physio\s*ai|security\s*shield|documind\s*ai|urban\s*cuts|medical\s*ai\s*assistant)\b",
+    re.I,
+)
 
-def _rule_based_answer(message: str) -> tuple[str, str]:
-    msg = message.lower().strip()
-    
-    # Greetings
-    if re.fullmatch(r"(hi|hello|hey|hii|yo|hola|greetings|welcome)[!. ]*", msg):
-        return "greeting", RULE_RESPONSES["greeting"]
-    
-    # Pricing/Cost questions
-    if re.search(r"\b(price|pricing|cost|plan|package|quote|rate|expense|budget|how much)\b", msg):
-        return "pricing_query", RULE_RESPONSES["pricing"]
-    
-    # Services/Development
-    if re.search(r"\b(service|services|offer|provide|build|development|automation|chatbot|backend|deploy|web app|saas|saaS)\b", msg):
-        return "service_info", RULE_RESPONSES["services"]
-    
-    # Products
-    if re.search(r"\b(product|products|nexusbot|flowmind|insightai|vaultauth|sprintkit|medical ai|travojo|nexura|resto|security shield)\b", msg):
-        return "product_info", RULE_RESPONSES["products"]
-    
-    # Contact/Reach out
-    if re.search(r"\b(contact|email|whatsapp|call|phone|reach|connect|talk to|get in touch|speak to)\b", msg):
-        return "contact_request", RULE_RESPONSES["contact"].format(whatsapp=_whatsapp())
-    
-    # Founder/Pratham questions
-    if re.search(r"\b(founder|pratham|who is|created|created by|founder prathomix|pratham singh)\b", msg):
-        return "founder_info", RULE_RESPONSES["founder_info"]
 
-    if re.search(r"\b(get started|getting started|start project|project brief|build my|need a project|want to build|how do i begin|what should i do first)\b", msg):
-        return "getting_started", RULE_RESPONSES["getting_started"]
-    
-    # About company
-    if re.search(r"\b(about|company|who are|team|mission|what do you|what does prathomix)\b", msg):
-        return "about_info", RULE_RESPONSES["about"]
-    
-    # Default to AI (general_faq)
-    return "general_faq", RULE_RESPONSES["default"]
+def _rule_match(msg: str) -> tuple[str, str] | None:
+    m = msg.lower().strip()
+    product_match = PRODUCT_PATTERN.search(m)
+    if product_match:
+        matched = re.sub(r"\s+", " ", product_match.group(0).lower()).strip()
+        guide = PRODUCT_GUIDES.get(matched)
+        if guide:
+            return f"product_{matched.replace(' ', '_')}", f"{guide} Ask me what part of it you want me to explain next."
 
-# ── Schemas ───────────────────────────────────────────────────
+    for pattern, intent, resp in _RULES:
+        if re.search(pattern, m):
+            return intent, resp
 
-class Message(BaseModel):
-    role: str    # "user" | "assistant"
-    content: str
+    if re.search(r"\b(about|who are you|about us|company|prathomix|what is prathomix|what do you do|services|products|product)\b", m):
+        return (
+            "company_overview",
+            "PRATHOMIX is a full-stack AI lab building chatbots, automations, SaaS products, analytics tools, API integrations, and security solutions. Tell me your use case and I’ll map it to the right service or product.",
+        )
+    return None
 
-class ChatRequest(BaseModel):
-    message: str
-    user_id: str | None                = None
-    history: list[Message]             = []   # last N turns from the client
-    session_id: str | None             = None
 
-class ChatResponse(BaseModel):
-    response: str
-    intent: str
-    source: str   # "groq" | "gemini" | "cache" | "fallback"
-    session_id: str | None = None
+def _local_fallback_response(message: str) -> str:
+    q = message.lower().strip()
+    catalog = SERVICES_DATA + PRODUCTS_DATA
 
-# ── Cache helpers ─────────────────────────────────────────────
+    for key, desc in PRODUCT_GUIDES.items():
+        if key in q:
+            return f"{desc} Tell me what you want to know next and I’ll narrow it down."
 
-def _cache_key(message: str) -> str:
-    h = hashlib.md5(message.lower().strip().encode()).hexdigest()[:12]
-    return f"smartbot:response:{h}"
+    def matched_items() -> list[dict]:
+        words = [w for w in re.split(r"\W+", q) if len(w) > 3]
+        hits: list[dict] = []
+        for item in catalog:
+            haystack = f"{item['title']} {item['desc']}".lower()
+            if any(word == token for word in words for token in re.split(r"\W+", haystack)):
+                hits.append(item)
+        return hits
 
-# ── AI helpers ────────────────────────────────────────────────
+    if any(k in q for k in ("service", "services", "offer", "do you do", "what can you build")):
+        return (
+            "PRATHOMIX can help with AI chatbot development, process automation, full-stack SaaS, analytics, API integration, and security hardening. "
+            "Share your goal on /contact and we’ll scope the right build for you."
+        )
 
-def _whatsapp() -> str:
-    return os.getenv("WHATSAPP_LINK", "https://wa.me/919887754009")
+    if any(k in q for k in ("product", "products", "bot", "tool")):
+        return (
+            "PRATHOMIX products include NexusBot, FlowMind, InsightAI, VaultAuth, SprintKit, Travojo, Physio AI, Security Shield, DocuMind AI, URBAN CUTS, and Medical AI Assistant. "
+            "Tell me which product you want and I’ll describe it in detail."
+        )
 
-def _build_history_text(history: list[Message]) -> str:
-    """Convert history to a readable conversation snippet (last 6 turns max)."""
-    turns = history[-6:]
-    lines = []
-    for m in turns:
-        prefix = "User" if m.role == "user" else "SmartBot"
-        lines.append(f"{prefix}: {m.content}")
-    return "\n".join(lines)
+    items = matched_items()
+    if items:
+        joined = "; ".join(f"{item['title']}: {item['desc']}" for item in items[:3])
+        return f"I found these PRATHOMIX matches: {joined}. For the full site details, visit /services, /products, or /contact."
 
-async def _hf_chat_completion(messages: list[dict], temperature: float = 0.3, max_tokens: int = 600) -> str:
-    if not HF_API_KEY:
-        raise RuntimeError("HUGGINGFACE_API_KEY is not set")
+    return (
+        "I can help with PRATHOMIX services, products, founder info, contact details, and project scoping. "
+        "Ask me anything about the website or tell me what you want to build."
+    )
 
-    url = "https://api-inference.huggingface.co/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {HF_API_KEY}",
-        "Content-Type": "application/json",
-    }
+
+# ═══════════════════════════════════════════════════════════════
+# 5.  GEMINI PROVIDER
+# ═══════════════════════════════════════════════════════════════
+
+async def _gemini_generate(message: str, session_id: str) -> str:
+    import google.generativeai as genai
+    genai.configure(api_key=GEMINI_API_KEY)
+    model   = genai.GenerativeModel(GEMINI_MODEL, system_instruction=SYSTEM)
+    history = _sessions.gemini_history(session_id)
+    chat    = model.start_chat(history=history)
+    resp    = await asyncio.to_thread(chat.send_message, message)
+    return resp.text.strip()
+
+
+async def _gemini_stream(message: str, session_id: str) -> AsyncGenerator[str, None]:
+    text = await _gemini_generate(message, session_id)
+    for word in text.split(" "):
+        yield word + " "
+        await asyncio.sleep(0.016)
+
+
+# ═══════════════════════════════════════════════════════════════
+# 6.  HUGGINGFACE PROVIDER
+# ═══════════════════════════════════════════════════════════════
+
+async def _hf_generate(message: str, session_id: str) -> str:
+    headers = {"Authorization": f"Bearer {HF_API_KEY}", "Content-Type": "application/json"}
     payload = {
-        "model": "meta-llama/Meta-Llama-3-8B-Instruct",
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
+        "model":       HF_MODEL,
+        "messages":    _sessions.hf_messages(session_id, message, SYSTEM),
+        "temperature": 0.45,
+        "max_tokens":  500,
+        "stream":      False,
     }
-
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        data = response.json()
-
-    if isinstance(data, dict) and data.get("error"):
-        raise RuntimeError(data["error"])
-
-    return data["choices"][0]["message"]["content"].strip()
+        resp = await client.post(HF_URL, headers=headers, json=payload)
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"].strip()
 
 
-async def _deep_answer_gemini(message: str, history_text: str) -> str:
-    model   = _gemini()
-    context = SYSTEM_CONTEXT.format(whatsapp=_whatsapp())
+async def _hf_stream(message: str, session_id: str) -> AsyncGenerator[str, None]:
+    headers = {"Authorization": f"Bearer {HF_API_KEY}", "Content-Type": "application/json"}
+    payload = {
+        "model":       HF_MODEL,
+        "messages":    _sessions.hf_messages(session_id, message, SYSTEM),
+        "temperature": 0.45,
+        "max_tokens":  500,
+        "stream":      True,
+    }
+    async with httpx.AsyncClient(timeout=30) as client:
+        async with client.stream("POST", HF_URL, headers=headers, json=payload) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                line = line.strip()
+                if not line or line == "data: [DONE]":
+                    continue
+                if line.startswith("data: "):
+                    try:
+                        delta = (
+                            json.loads(line[6:])["choices"][0]
+                            .get("delta", {})
+                            .get("content", "")
+                        )
+                        if delta:
+                            yield delta
+                            await asyncio.sleep(0)
+                    except (json.JSONDecodeError, KeyError, IndexError):
+                        continue
 
-    conv_block = f"\n\nConversation history:\n{history_text}\n" if history_text else ""
 
-    prompt = (
-        f"{context}{conv_block}\n\n"
-        f"User's latest message:\n\"{message}\"\n\n"
-        "IMPORTANT GUARDRAILS:\n"
-        "1. If the user asks about topics OUTSIDE PRATHOMIX's scope (politics, sports, trivia, etc.), "
-        "politely redirect them by saying: 'I specialize in PRATHOMIX's services and AI technology. "
-        "For anything else, please contact our team.'\n"
-        "2. NEVER make up product features, pricing, or capabilities that are not mentioned in your context\n"
-        "3. If uncertain about timelines, pricing, or specific details, direct them to contact the team\n"
-        "4. If the user wants to start a project or talk to the founder, send them to the Contact page or founder.prathomix@gmail.com\n"
-        "5. Keep the response concise, professional, and useful\n\n"
-        "Respond in this structure:\n"
-        "- One direct answer\n"
-        "- One or two relevant PRATHOMIX services/products\n"
-        "- One clear next step or CTA\n\n"
-        "Keep it under 180 words."
-    )
+# ═══════════════════════════════════════════════════════════════
+# 7.  UNIFIED SMART STREAM — where the auto-switching happens
+# ═══════════════════════════════════════════════════════════════
 
-    response = model.generate_content(prompt)
-    return response.text.strip()
+async def _smart_stream(
+    message: str, session_id: str
+) -> AsyncGenerator[tuple[str, Provider | None], None]:
+    """
+    Yields (text_chunk, provider_used).
+    Auto-switches on quota errors.
+    """
+    tried: set[Provider] = set()
 
-async def _deep_answer_hf(message: str, history_text: str) -> str:
-    context = SYSTEM_CONTEXT.format(whatsapp=_whatsapp())
-    conv_block = f"\n\nConversation history:\n{history_text}\n" if history_text else ""
-    prompt = (
-        f"{context}{conv_block}\n\n"
-        f"User's latest message:\n\"{message}\"\n\n"
-        "IMPORTANT GUARDRAILS:\n"
-        "1. If the user asks about topics OUTSIDE PRATHOMIX's scope (politics, sports, trivia, etc.), "
-        "politely redirect them by saying: 'I specialize in PRATHOMIX's services and AI technology. "
-        "For anything else, please contact our team.'\n"
-        "2. NEVER make up product features, pricing, or capabilities that are not mentioned in your context\n"
-        "3. If uncertain about timelines, pricing, or specific details, direct them to contact the team\n"
-        "4. If the user wants to start a project or talk to the founder, send them to the Contact page or founder.prathomix@gmail.com\n"
-        "5. Keep the response concise, professional, and useful\n\n"
-        "Respond in this structure:\n"
-        "- One direct answer\n"
-        "- One or two relevant PRATHOMIX services/products\n"
-        "- One clear next step or CTA\n\n"
-        "Keep it under 180 words."
-    )
+    while True:
+        provider = _router.pick()
 
-    return await _hf_chat_completion(
-        messages=[
-            {"role": "system", "content": SYSTEM_INSTRUCTION},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.4,
-        max_tokens=500,
-    )
+        if provider is None or provider in tried:
+            log.error("[Smart Stream] Both providers unavailable → local fallback")
+            fallback = _local_fallback_response(message)
+            for w in fallback.split(" "):
+                yield w + " ", None
+                await asyncio.sleep(0.01)
+            return
 
-# ── Endpoint ──────────────────────────────────────────────────
+        tried.add(provider)
+        _router._last = provider
+        log.info(f"[Smart Stream] provider={provider}")
 
-@router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, req: Request, _=Depends(limiter)):
-    raw_message = request.message.strip()
-    if not raw_message:
-        raise HTTPException(status_code=400, detail="Message cannot be empty.")
-
-    message     = sanitise_query(raw_message)
-    history_text = _build_history_text(request.history)
-    intent      = "general_faq"
-    answer      = ""
-    source      = "rule"
-
-    # ── Cache check ───────────────────────────────────────────
-    if not history_text:  # Only cache stateless queries
         try:
-            from cache.redis_client import cache_get, cache_set
-            cached = await cache_get(_cache_key(message))
-            if cached and isinstance(cached, dict):
-                log.info(f"Cache hit for: {message[:40]}")
-                return ChatResponse(
-                    response=cached.get("response", ""),
-                    intent=cached.get("intent", "cache"),
-                    source="cache",
-                    session_id=request.session_id,
-                )
-        except Exception:
-            pass  # Cache miss or Redis down — continue normally
+            yield f"\x00PROVIDER:{provider}", provider
 
-    # ── AI processing ─────────────────────────────────────────
-    intent, answer = _rule_based_answer(message)
-    if intent in SIMPLE_INTENTS:
-        source = "rule"
-    elif intent == "general_faq":
-        try:
-            if GEMINI_API_KEY:
-                source = "gemini"
-                answer = await _deep_answer_gemini(message, history_text)
-            elif HF_API_KEY:
-                source = "huggingface"
-                answer = await _deep_answer_hf(message, history_text)
+            if provider == "gemini":
+                async for chunk in _gemini_stream(message, session_id):
+                    yield chunk, provider
             else:
-                source = "fallback"
-                answer = FALLBACK.format(whatsapp=_whatsapp())
-        except Exception as e:
-            log.error(f"Chatbot error: {e}")
-            try:
-                if HF_API_KEY:
-                    source = "huggingface"
-                    answer = await _deep_answer_hf(message, history_text)
-            except Exception as hf_error:
-                log.error(f"Hugging Face fallback error: {hf_error}")
-                source = "fallback"
-                answer = FALLBACK.format(whatsapp=_whatsapp())
+                async for chunk in _hf_stream(message, session_id):
+                    yield chunk, provider
 
-        if not answer or len(answer.strip()) < 10:
-            source = "fallback"
-            answer = FALLBACK.format(whatsapp=_whatsapp())
+            _router.ok(provider)
+            return
 
-    # ── Cache the response (stateless only, non-fallback) ─────
-    if source != "fallback" and not history_text:
-        try:
-            from cache.redis_client import cache_set
-            await cache_set(_cache_key(message), {"response": answer, "intent": intent}, ttl=600)
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning(f"[Smart Stream] {provider} error: {exc}")
+
+            if _is_quota_err(exc):
+                _router.fail(provider, str(exc))
+                other: Provider = "huggingface" if provider == "gemini" else "gemini"
+                log.info(f"[Smart Stream] quota hit → switching to {other}")
+                yield f"\x00SWITCH:{other}", None
+            else:
+                log.warning(f"[Smart Stream] {provider} failed non-quota → local fallback")
+                fallback = _local_fallback_response(message)
+                for w in fallback.split(" "):
+                    yield w + " ", provider
+                    await asyncio.sleep(0.01)
+                return
+
+
+# ═══════════════════════════════════════════════════════════════
+# 8.  SSE PIPELINE
+# ═══════════════════════════════════════════════════════════════
+
+def _sse(text: str = "", event: str = "token") -> str:
+    return f"event: {event}\ndata: {json.dumps({'text': text})}\n\n"
+
+
+async def _sse_pipeline(
+    message: str, session_id: str, user_id: str | None
+) -> AsyncGenerator[str, None]:
+
+    full    = ""
+    intent  = "general_faq"
+
+    try:
+        # ── Rule engine ───────────────────────────────────────
+        rule = _rule_match(message)
+        if rule:
+            intent, text = rule
+            yield _sse("", "rule_response")
+            for word in text.split(" "):
+                chunk = word + " "
+                full += chunk
+                yield _sse(chunk)
+                await asyncio.sleep(0.012)
+
+        else:
+            # ── Smart AI stream ───────────────────────────────
+            active = _router.pick()
+            yield _sse(active or "none", "provider_start")
+
+            async for chunk, provider in _smart_stream(message, session_id):
+                # Internal control signals (start with null byte)
+                if chunk.startswith("\x00"):
+                    if chunk.startswith("\x00PROVIDER:"):
+                        p = chunk.split(":")[1]
+                        yield _sse(p, "provider_active")
+                    elif chunk.startswith("\x00SWITCH:"):
+                        p = chunk.split(":")[1]
+                        yield _sse(p, "provider_switch")
+                    continue
+
+                full += chunk
+                yield _sse(chunk)
+
+    except Exception as exc:
+        log.error(f"[SSE Pipeline] {exc}")
+        yield _sse(FALLBACK_MSG)
+        full = FALLBACK_MSG
+
+    # ── Save to memory ────────────────────────────────────────
+    _sessions.add(session_id, "user",      message)
+    _sessions.add(session_id, "assistant", full.strip())
 
     # ── Log to Supabase ───────────────────────────────────────
     try:
         await log_query(
-            query=message,
-            intent=intent,
-            response=answer,
-            user_id=request.user_id,
+            query=message, intent=intent,
+            response=full.strip(), user_id=user_id,
         )
     except Exception as e:
-        log.warning(f"Failed to log query: {e}")
+        log.warning(f"[SSE Pipeline] Supabase log failed: {e}")
 
-    return ChatResponse(
-        response=answer,
-        intent=intent,
-        source=source,
-        session_id=request.session_id,
+    yield (
+        "event: done\n"
+        f"data: {json.dumps({'intent': intent, 'router': _router.status()})}\n\n"
     )
 
 
-@router.get("/suggestions", summary="Get suggested starter questions")
+# ═══════════════════════════════════════════════════════════════
+# 9.  SCHEMAS
+# ═══════════════════════════════════════════════════════════════
+
+class ChatRequest(BaseModel):
+    message:    str
+    session_id: str | None = None
+    user_id:    str | None = None
+
+
+class SyncResponse(BaseModel):
+    response:   str
+    intent:     str
+    session_id: str
+    router:     dict
+
+
+# ═══════════════════════════════════════════════════════════════
+# 10.  ENDPOINTS
+# ═══════════════════════════════════════════════════════════════
+
+@router.post("/stream", summary="Stream Mix response (SSE) — auto-switching AI")
+async def stream(req: ChatRequest, request: Request, _=Depends(limiter)):
+    """
+    SSE endpoint. Event types:
+      provider_start   — which AI was initially picked
+      provider_active  — which AI is currently generating
+      provider_switch  — quota hit, switched to this provider
+      rule_response    — answered by rule engine (no AI used)
+      token            — text chunk to append
+      done             — stream finished (includes router status)
+    """
+    if not req.message.strip():
+        raise HTTPException(400, "Message cannot be empty.")
+
+    msg = sanitise_query(req.message)
+    sid = req.session_id or str(uuid.uuid4())
+
+    return StreamingResponse(
+        _sse_pipeline(msg, sid, req.user_id),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control":              "no-cache",
+            "X-Accel-Buffering":          "no",
+            "Access-Control-Allow-Origin": "*",
+            "X-Session-Id":               sid,
+        },
+    )
+
+
+@router.post("/chat", response_model=SyncResponse, summary="Sync fallback")
+async def chat_sync(req: ChatRequest, request: Request, _=Depends(limiter)):
+    if not req.message.strip():
+        raise HTTPException(400, "Message cannot be empty.")
+
+    msg = sanitise_query(req.message)
+    sid = req.session_id or str(uuid.uuid4())
+
+    full   = ""
+    intent = "general_faq"
+
+    async for raw in _sse_pipeline(msg, sid, req.user_id):
+        if raw.startswith("event: token"):
+            try:
+                full += json.loads(raw.split("data: ", 1)[1]).get("text", "")
+            except Exception:
+                pass
+        elif raw.startswith("event: done"):
+            try:
+                intent = json.loads(raw.split("data: ", 1)[1]).get("intent", intent)
+            except Exception:
+                pass
+
+    return SyncResponse(
+        response=full.strip() or FALLBACK_MSG,
+        intent=intent,
+        session_id=sid,
+        router=_router.status(),
+    )
+
+
+@router.get("/router/status", summary="Live router health check")
+async def router_status():
+    """See which AI is active and which is cooling."""
+    active = _router.pick()
+    return {
+        "active_provider": active or "none — both cooling",
+        "providers":       _router.status(),
+        "models": {
+            "gemini":      GEMINI_MODEL,
+            "huggingface": HF_MODEL,
+        },
+    }
+
+
+@router.post("/router/reset/{provider}", summary="Force-reset a provider")
+async def reset_provider(provider: str):
+    """Admin: manually bring a provider back to 'ok'."""
+    targets = ["gemini", "huggingface"] if provider == "both" else [provider]
+    for p in targets:
+        if p not in ("gemini", "huggingface"):
+            raise HTTPException(400, f"Unknown provider: {p}")
+        _router.force_ok(p)
+        log.info(f"[Router] {p} manually reset to ok")
+    return {"reset": targets, "status": _router.status()}
+
+
+@router.get("/suggestions")
 async def suggestions():
-    """Return curated starter questions shown in the SmartBot UI."""
     return {
         "suggestions": [
-            "Hello! What can PRATHOMIX do for my business?",
-            "Tell me about your AI chatbot services.",
-            "What products do you offer?",
-            "Can you build a custom SaaS app for us?",
-            "Who is the founder of PRATHOMIX?",
+            "What can Mix help me with?",
+            "Tell me about Travojo.",
+            "What AI services does PRATHOMIX offer?",
+            "Can you build a custom chatbot?",
+            "What is the Medical AI Assistant?",
             "How quickly can you deliver an MVP?",
-            "What's the difference between your products?",
-            "Tell me about the Medical AI Assistant.",
-            "How do I get in touch with your team?",
-            "What's your pricing structure?",
+            "How do I get started?",
+            "Who is the founder of PRATHOMIX?",
+            "What is Nexura?",
+            "What does Security Shield do?",
         ]
     }
+
+
+@router.delete("/session/{session_id}")
+async def clear_session(session_id: str):
+    _sessions.clear(session_id)
+    return {"cleared": True, "session_id": session_id}
