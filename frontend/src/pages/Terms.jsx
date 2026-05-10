@@ -26,7 +26,7 @@ queries are licensed to you for your own use. You retain ownership of content yo
   },
   {
     title: '4. AI Services Disclaimer',
-    body: `Our AI tools (SmartBot, NexusBot) are powered by third-party models. PRATHOMIX is a technology platform, not a healthcare provider. Any medical-related AI outputs (like prescription parsing) are for informational purposes only and DO NOT constitute medical advice, diagnosis, or treatment. We are not liable for decisions made based on AI-generated content.`,
+    body: `Our AI tools (SmartBot, Mix AI) are powered by third-party models. PRATHOMIX is a technology platform, not a healthcare provider. Any medical-related AI outputs (like prescription parsing) are for informational purposes only and DO NOT constitute medical advice, diagnosis, or treatment. We are not liable for decisions made based on AI-generated content.`,
   },
   {
     title: 'Disclaimer of Warranties',

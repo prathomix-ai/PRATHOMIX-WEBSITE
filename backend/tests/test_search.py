@@ -30,7 +30,7 @@ def test_search_products():
     r = client.get("/api/search/?q=nexus&type=products")
     assert r.status_code == 200
     data = r.json()
-    assert any(r["title"] == "NexusBot" for r in data["results"])
+    assert any(r["title"] == "Mix AI" for r in data["results"])
 
 
 def test_search_all():

@@ -1142,7 +1142,7 @@ import { Bot, BarChart2, Workflow, Shield, Zap, ExternalLink } from 'lucide-reac
 const PRODUCTS = [
   {
     icon: Bot,
-    name: 'NexusBot',
+    name: 'Mix AI',
     tagline: 'Conversational AI for enterprise support',
     description: 'A multi-model chatbot engine combining Groq\'s blazing speed with Gemini\'s reasoning depth. Deploy on web, WhatsApp, and Slack.',
     status: 'Live',
@@ -2338,7 +2338,7 @@ PRATHOMIX offers:
 • API Integration & System Architecture
 • Security Audit & Hardening
 
-Proprietary Products: NexusBot, FlowMind, InsightAI, VaultAuth, SprintKit
+Proprietary Products: Mix AI, FlowMind, InsightAI, VaultAuth, SprintKit
 
 Contact:
   Company Email : hello@prathomix.xyz
@@ -4282,7 +4282,7 @@ const PLANS = [
     color: 'from-gray-400 to-gray-600',
     badge: null,
     features: [
-      'Access to NexusBot (limited)',
+      'Access to Mix AI (limited)',
       '100 AI chatbot queries / month',
       'Community support',
       'Basic analytics dashboard',
@@ -4301,7 +4301,7 @@ const PLANS = [
     color: 'from-brand-400 to-ink-500',
     badge: 'Most Popular',
     features: [
-      'Full NexusBot access',
+      'Full Mix AI access',
       '10,000 AI queries / month',
       'FlowMind automation (beta)',
       'Priority support (< 12h)',
@@ -6288,7 +6288,7 @@ const POSTS = [
   {
     slug: 'groq-vs-openai-speed',
     title: 'Groq vs OpenAI: Why Speed Matters for Production Chatbots',
-    excerpt: 'When we built NexusBot, we benchmarked every major LLM provider. The results were shocking — here\'s why Groq\'s LPU architecture changes everything for real-time AI applications.',
+    excerpt: 'When we built Mix AI, we benchmarked every major LLM provider. The results were shocking — here\'s why Groq\'s LPU architecture changes everything for real-time AI applications.',
     date: '2025-06-01',
     readTime: '6 min',
     tags: ['AI', 'Groq', 'Performance'],
@@ -6476,7 +6476,7 @@ const STEPS = [
   {
     icon: Layers,
     title: 'Explore Our Products',
-    desc: "We are building AI-powered tools including NexusBot (chatbot engine), FlowMind (automation), and InsightAI (data). Check the Products page to see what is live.",
+    desc: "We are building AI-powered tools including Mix AI (chatbot engine), FlowMind (automation), and InsightAI (data). Check the Products page to see what is live.",
     color: 'from-amber-400 to-orange-400',
     cta: 'Explore Now',
   },
@@ -7529,7 +7529,7 @@ const CASES = [
     logo: 'FE',
     color: 'from-brand-400 to-teal-400',
     challenge: 'Their support team was handling 800+ daily customer queries manually, with 4-hour average response times, leading to 23% monthly churn.',
-    solution: 'PRATHOMIX built NexusBot integrated with their CRM, handling FAQs, account queries, and escalations. Custom Groq + Gemini routing ensured sub-2-second responses on complex questions.',
+    solution: 'PRATHOMIX built Mix AI integrated with their CRM, handling FAQs, account queries, and escalations. Custom Groq + Gemini routing ensured sub-2-second responses on complex questions.',
     results: [
       { label: 'Query Resolution Rate', value: '78%', detail: 'fully automated' },
       { label: 'Response Time',         value: '<2s',  detail: 'down from 4 hours' },
@@ -7537,7 +7537,7 @@ const CASES = [
       { label: 'Team Hours Saved',      value: '120h', detail: 'per week' },
     ],
     timeline: '3 weeks',
-    tech: ['NexusBot', 'Groq LLaMA 3', 'Gemini 1.5', 'FastAPI', 'Supabase'],
+    tech: ['Mix AI', 'Groq LLaMA 3', 'Gemini 1.5', 'FastAPI', 'Supabase'],
     quote: 'PRATHOMIX turned our biggest pain point into a genuine competitive advantage.',
     quotePerson: 'Arjun Mehta, Founder',
   },
@@ -8933,7 +8933,7 @@ queries are licensed to you for your own use. You retain ownership of content yo
   },
   {
     title: '4. AI Services Disclaimer',
-    body: `Our AI tools (SmartBot, NexusBot) are powered by third-party models (Groq, Gemini).
+    body: `Our AI tools (SmartBot, Mix AI) are powered by third-party models (Groq, Gemini).
 AI outputs may be inaccurate or incomplete. Do not rely on AI responses for medical, legal,
 financial, or safety-critical decisions. We are not liable for decisions made based on
 AI-generated content.`,
@@ -9060,7 +9060,7 @@ const ENDPOINTS = [
   "projects": [
     {
       "id": "uuid",
-      "name": "NexusBot",
+      "name": "Mix AI",
       "description": "...",
       "github_url": "https://github.com/...",
       "tags": ["AI", "FastAPI"],
@@ -10952,9 +10952,9 @@ write("frontend/src/components/AlertBanner.jsx", """\
  *
  * Usage:
  *   <AlertBanner
- *     message="🚀 NexusBot 2.0 is live — check it out!"
+ *     message="🚀 Mix AI 2.0 is live — check it out!"
  *     href="/products"
- *     storageKey="banner_nexusbot_v2"
+ *     storageKey="banner_Mix AI_v2"
  *   />
  */
 import React, { useState } from 'react'
@@ -11049,7 +11049,7 @@ PRATHOMIX Services:
 • API Integration & System Architecture
 • Security Audit & Hardening
 
-Products: NexusBot · FlowMind · InsightAI · VaultAuth · SprintKit
+Products: Mix AI · FlowMind · InsightAI · VaultAuth · SprintKit
 
 Contact:
   Company : hello@prathomix.xyz
@@ -11264,7 +11264,7 @@ async def suggestions():
         "suggestions": [
             "What AI services does PRATHOMIX offer?",
             "How quickly can you build a chatbot?",
-            "What's the difference between NexusBot and FlowMind?",
+            "What's the difference between Mix AI and FlowMind?",
             "Can you integrate with WhatsApp Business?",
             "How much does the Pro plan cost?",
             "How do I get started?",
@@ -11297,7 +11297,7 @@ SERVICES_DATA = [
 ]
 
 PRODUCTS_DATA = [
-    {"id": "p1", "title": "NexusBot",  "desc": "Multi-model chatbot engine combining Groq speed with Gemini depth", "url": "/products"},
+    {"id": "p1", "title": "Mix AI",  "desc": "Multi-model chatbot engine combining Groq speed with Gemini depth", "url": "/products"},
     {"id": "p2", "title": "FlowMind",  "desc": "Visual drag-and-drop automation builder with AI logic nodes",       "url": "/products"},
     {"id": "p3", "title": "InsightAI", "desc": "Natural language queries against your business data",                "url": "/products"},
     {"id": "p4", "title": "VaultAuth", "desc": "Zero-trust authentication layer with MFA and RBAC",                  "url": "/products"},
@@ -11472,7 +11472,7 @@ if not URL or not KEY or URL.startswith("your_"):
 client = create_client(URL, KEY)
 
 PROJECTS = [
-    {"name": "NexusBot",  "description": "Multi-model AI chatbot engine for enterprise support",          "github_url": "https://github.com/prathomix/nexusbot",  "tags": ["AI", "Groq", "Gemini", "FastAPI"]},
+    {"name": "Mix AI",  "description": "Multi-model AI chatbot engine for enterprise support",          "github_url": "https://github.com/prathomix/Mix AI",  "tags": ["AI", "Groq", "Gemini", "FastAPI"]},
     {"name": "FlowMind",  "description": "Visual drag-and-drop AI workflow automation studio",            "github_url": "https://github.com/prathomix/flowmind",  "tags": ["Automation", "Python", "n8n"]},
     {"name": "InsightAI", "description": "Natural language business intelligence dashboard",              "github_url": "https://github.com/prathomix/insightai", "tags": ["Analytics", "AI", "React"]},
     {"name": "VaultAuth", "description": "Zero-trust authentication layer with MFA and RBAC",            "github_url": "https://github.com/prathomix/vaultauth", "tags": ["Security", "Supabase", "JWT"]},
@@ -11818,7 +11818,7 @@ def test_search_products():
     r = client.get("/api/search/?q=nexus&type=products")
     assert r.status_code == 200
     data = r.json()
-    assert any(r["title"] == "NexusBot" for r in data["results"])
+    assert any(r["title"] == "Mix AI" for r in data["results"])
 
 
 def test_search_all():

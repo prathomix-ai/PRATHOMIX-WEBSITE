@@ -21,7 +21,7 @@ SERVICES_DATA = [
 ]
 
 PRODUCTS_DATA = [
-    {"id": "p1", "title": "NexusBot",  "desc": "Multi-model chatbot engine combining Groq speed with Gemini depth", "url": "/products"},
+    {"id": "p1", "title": "Mix AI",  "desc": "Multi-model chatbot engine combining Groq speed with Gemini depth", "url": "/products"},
     {"id": "p2", "title": "FlowMind",  "desc": "Visual drag-and-drop automation builder with AI logic nodes",       "url": "/products"},
     {"id": "p3", "title": "InsightAI", "desc": "Natural language queries against your business data",                "url": "/products"},
     {"id": "p4", "title": "VaultAuth", "desc": "Zero-trust authentication layer with MFA and RBAC",                  "url": "/products"},

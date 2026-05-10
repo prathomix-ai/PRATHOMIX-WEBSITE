@@ -21,7 +21,7 @@ const STEPS = [
   {
     icon: Layers,
     title: 'Explore Our Products',
-    desc: "We are building AI-powered tools including NexusBot (chatbot engine), FlowMind (automation), and InsightAI (data). Check the Products page to see what is live.",
+    desc: "We are building AI-powered tools including Mix AI (chatbot engine), FlowMind (automation), and InsightAI (data). Check the Products page to see what is live.",
     color: 'from-amber-400 to-orange-400',
     cta: 'Explore Now',
   },

@@ -32,7 +32,7 @@ if not URL or not KEY or URL.startswith("your_"):
 client = create_client(URL, KEY)
 
 PROJECTS = [
-    {"name": "NexusBot",  "description": "Multi-model AI chatbot engine for enterprise support",          "github_url": "https://github.com/prathomix/nexusbot",  "tags": ["AI", "Groq", "Gemini", "FastAPI"]},
+    {"name": "Mix AI",  "description": "Multi-model AI chatbot engine for enterprise support",          "github_url": "https://github.com/prathomix/Mix AI",  "tags": ["AI", "Groq", "Gemini", "FastAPI"]},
     {"name": "FlowMind",  "description": "Visual drag-and-drop AI workflow automation studio",            "github_url": "https://github.com/prathomix/flowmind",  "tags": ["Automation", "Python", "n8n"]},
     {"name": "InsightAI", "description": "Natural language business intelligence dashboard",              "github_url": "https://github.com/prathomix/insightai", "tags": ["Analytics", "AI", "React"]},
     {"name": "VaultAuth", "description": "Zero-trust authentication layer with MFA and RBAC",            "github_url": "https://github.com/prathomix/vaultauth", "tags": ["Security", "Supabase", "JWT"]},

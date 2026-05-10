@@ -402,8 +402,8 @@ PRODUCT_GUIDES: dict[str, str] = {
         "Travojo is our travel and safety ecosystem. It combines intelligent maps, live navigation, "
         "AI travel assistance, and hyper-local safety for smarter trips."
     ),
-    "nexusbot": (
-        "NexusBot is our multi-model chatbot engine built for fast responses and deeper reasoning."
+    "Mix AI": (
+        "Mix AI is our multi-model chatbot engine built for fast responses and deeper reasoning."
     ),
     "physio ai": (
         "Physio AI is a smart healthcare app that tracks exercises with phone cameras and supports voice booking."
@@ -417,7 +417,7 @@ PRODUCT_GUIDES: dict[str, str] = {
 }
 
 PRODUCT_PATTERN = re.compile(
-    r"\b(travojo|nexusbot|flowmind|insightai|vaultauth|sprintkit|physio\s*ai|security\s*shield|documind\s*ai|urban\s*cuts|medical\s*ai\s*assistant|prathomix\s*resto|custom\s*ai\s*agents?)\b",
+    r"\b(travojo|Mix AI|flowmind|insightai|vaultauth|sprintkit|physio\s*ai|security\s*shield|documind\s*ai|urban\s*cuts|medical\s*ai\s*assistant|prathomix\s*resto|custom\s*ai\s*agents?)\b",
     re.I,
 )
 
@@ -472,7 +472,7 @@ def _local_fallback_response(message: str) -> str:
 
     if any(k in q for k in ("product", "products", "bot", "tool")):
         return (
-            "PRATHOMIX products include NexusBot, FlowMind, InsightAI, VaultAuth, SprintKit, Travojo, Physio AI, Security Shield, DocuMind AI, URBAN CUTS, and Medical AI Assistant. "
+            "PRATHOMIX products include Mix AI, FlowMind, InsightAI, VaultAuth, SprintKit, Travojo, Physio AI, Security Shield, DocuMind AI, URBAN CUTS, and Medical AI Assistant. "
             "Tell me which product you want and I’ll describe it in detail."
         )
 

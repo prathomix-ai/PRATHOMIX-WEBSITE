@@ -14,7 +14,7 @@ const PLANS = [
     color: 'from-gray-400 to-gray-600',
     badge: null,
     features: [
-      'Basic NexusBot access',
+      'Basic Mix AI access',
       '100 AI queries / month',
       'Standard Email Support',
       '1 Active Workspace',
@@ -32,7 +32,7 @@ const PLANS = [
     color: 'from-brand-400 to-ink-500',
     badge: 'Most Popular',
     features: [
-      'Full AI Chatbot (NexusBot)',
+      'Full AI Chatbot (Mix AI)',
       'QR Ordering & Split-Bill (Resto)',
       'Smart Auto-Scheduling (Salons)',
       '10,000 AI queries / month',

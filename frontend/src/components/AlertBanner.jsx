@@ -4,9 +4,9 @@
  *
  * Usage:
  *   <AlertBanner
- *     message="🚀 NexusBot 2.0 is live — check it out!"
+ *     message="🚀 Mix AI 2.0 is live — check it out!"
  *     href="/products"
- *     storageKey="banner_nexusbot_v2"
+ *     storageKey="banner_Mix AI_v2"
  *   />
  */
 import React, { useState } from 'react'

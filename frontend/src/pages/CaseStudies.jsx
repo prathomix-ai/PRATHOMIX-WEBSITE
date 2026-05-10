@@ -20,7 +20,7 @@ const CASES = [
       { label: 'System Uptime', value: '99.9%', detail: 'Edge deployed' }
     ],
     timeline: 'Internal Beta',
-    tech: ['NexusBot', 'Groq LLaMA 3', 'Gemini 1.5', 'FastAPI', 'Supabase'],
+    tech: ['Mix AI', 'Groq LLaMA 3', 'Gemini 1.5', 'FastAPI', 'Supabase'],
     quote: 'We designed the backend architecture to handle weekend dinner rushes without dropping a single order.',
     quotePerson: 'Pratham, Founder & System Architect'
   },

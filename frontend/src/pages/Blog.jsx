@@ -8,7 +8,7 @@ const POSTS = [
   {
     slug: 'groq-vs-openai-speed',
     title: 'Groq vs OpenAI: Why Speed Matters for Production Chatbots',
-    excerpt: "When we built NexusBot, we benchmarked every major LLM provider. The results were shocking — here's why Groq's LPU architecture changes everything for real-time AI applications.",
+    excerpt: "When we built Mix AI, we benchmarked every major LLM provider. The results were shocking — here's why Groq's LPU architecture changes everything for real-time AI applications.",
     date: '2025-06-01',
     readTime: '6 min',
     tags: ['AI', 'Groq', 'Performance'],

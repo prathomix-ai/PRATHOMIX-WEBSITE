@@ -42,7 +42,7 @@ const ENDPOINTS = [
   "projects": [
     {
       "id": "uuid",
-      "name": "NexusBot",
+      "name": "Mix AI",
       "description": "...",
       "github_url": "https://github.com/...",
       "tags": ["AI", "FastAPI"],
