@@ -10,15 +10,14 @@ const PLANS = [
     icon: Zap,
     monthly: 0,
     yearly: 0,
-    desc: 'Good for trying PRATHOMIX.',
+    desc: 'Good for testing the AI.',
     color: 'from-gray-400 to-gray-600',
     badge: null,
     features: [
-      'NexusBot basic access',
-      '100 chatbot replies / month',
-      'Community support',
-      'Basic analytics',
-      '1 workspace',
+      'Basic NexusBot access',
+      '100 AI queries / month',
+      'Standard Email Support',
+      '1 Active Workspace',
     ],
     cta: 'Get Started Free',
     to: '/register',
@@ -27,22 +26,20 @@ const PLANS = [
   {
     name: 'Pro',
     icon: Sparkles,
-    monthly: 49,
-    yearly: 39,
-    desc: 'For growing teams.',
+    monthly: 2999,
+    yearly: 2399,
+    desc: 'For restaurants & growing salons.',
     color: 'from-brand-400 to-ink-500',
     badge: 'Most Popular',
     features: [
-      'Full NexusBot access',
-      '10,000 chatbot replies / month',
-      'FlowMind automation (beta)',
-      'Priority support (12h)',
-      '10 workspaces',
-      'Custom chatbot style',
-      'API access',
-      'Advanced analytics',
+      'Full AI Chatbot (NexusBot)',
+      'QR Ordering & Split-Bill (Resto)',
+      'Smart Auto-Scheduling (Salons)',
+      '10,000 AI queries / month',
+      'Dedicated WhatsApp Support',
+      'Guaranteed 24-Hour Response SLA',
     ],
-    cta: 'Start Pro Trial',
+    cta: 'Start Free Trial',
     to: '/register',
     highlight: true,
   },
@@ -51,20 +48,18 @@ const PLANS = [
     icon: Building2,
     monthly: null,
     yearly: null,
-    desc: 'For large teams.',
+    desc: 'For hospitals & large operations.',
     color: 'from-amber-400 to-orange-500',
     badge: 'Custom',
     features: [
-      'Unlimited AI usage',
-      'All products included',
-      'Dedicated support engineer',
-      '99.9% uptime SLA',
-      'On-premise option',
-      'Custom model tuning',
-      'SAML SSO / SCIM',
-      'Compliance reports',
+      'Custom AI Agents & Routing',
+      'Medical Vision APIs (PoC)',
+      'Unlimited AI Usage',
+      'On-premise deployment option',
+      'Custom LLM Fine-tuning',
+      'Dedicated Engineer (4h SLA)',
     ],
-    cta: 'Contact Sales',
+    cta: 'Contact Founder',
     to: '/contact',
     highlight: false,
   },
@@ -75,7 +70,7 @@ export default function Pricing() {
 
   return (
     <div className="relative min-h-screen pt-24 pb-20 px-4">
-      <SEO title="Pricing" description="Transparent, fair pricing for PRATHOMIX AI tools. Start free." />
+      <SEO title="Pricing" description="Transparent INR pricing for PRATHOMIX AI SaaS products. Start free." />
       <div className="max-w-6xl mx-auto">
 
         <motion.div
@@ -90,7 +85,7 @@ export default function Pricing() {
             <span className="text-gradient">Pricing</span>
           </h1>
           <p className="text-gray-400 text-lg max-w-xl mx-auto mb-8">
-            No hidden fees. Cancel anytime.
+            Transparent INR pricing for Indian businesses. Cancel anytime.
           </p>
 
           {/* Toggle */}
@@ -152,15 +147,17 @@ export default function Pricing() {
                   <p className="font-display font-bold text-3xl text-white">Free</p>
                 ) : (
                   <div className="flex items-end gap-1">
+                    <span className="font-display font-bold text-4xl text-white">₹</span>
                     <span className="font-display font-bold text-4xl text-white">
-                      ${yearly ? yr : monthly}
+                      {yearly ? yr : monthly}
                     </span>
                     <span className="text-gray-500 text-sm mb-1 font-mono">/mo</span>
                   </div>
                 )}
                 {yearly && yr !== null && monthly !== null && monthly > 0 && (
                   <p className="text-xs text-green-400 font-mono mt-1">
-                    Billed annually · Save ${(monthly - yr) * 12}/yr
+                    Billed annually · Save <span className="inline-block">₹</span>{' '}
+                    {(monthly - yr) * 12}/yr
                   </p>
                 )}
               </div>

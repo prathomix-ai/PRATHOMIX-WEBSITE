@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Zap, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
-import { useToast } from '../components/Toast'
+
+const DUPLICATE_EMAIL_MESSAGE = 'This email is already taken. Please login instead.'
 
 export default function Register() {
   const [name, setName]       = useState('')
@@ -13,17 +14,13 @@ export default function Register() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-  const { toast } = useToast()
 
   const isAccountExistsError = (err) => {
     const message = `${err?.message || ''} ${err?.error_description || ''}`.toLowerCase()
     return (
-      message.includes('user already registered') ||
       message.includes('email already registered') ||
-      message.includes('already exists') ||
-      message.includes('already been registered') ||
       err?.status === 400 ||
-      err?.status === 409
+      message.includes('already registered')
     )
   }
 
@@ -42,7 +39,7 @@ export default function Register() {
 
       if (err) {
         if (isAccountExistsError(err)) {
-          toast.error('An account already exists with this email. Please log in.')
+          setError(DUPLICATE_EMAIL_MESSAGE)
           return
         }
 
@@ -54,7 +51,7 @@ export default function Register() {
       setTimeout(() => navigate('/login'), 2500)
     } catch (err) {
       if (isAccountExistsError(err)) {
-        toast.error('An account already exists with this email. Please log in.')
+        setError(DUPLICATE_EMAIL_MESSAGE)
         return
       }
 

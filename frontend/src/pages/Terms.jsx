@@ -9,7 +9,7 @@ const SECTIONS = [
     title: '1. Acceptance of Terms',
     body: `By accessing or using the PRATHOMIX platform ("Service"), you agree to be bound by
 these Terms of Use. If you do not agree, do not use the Service. We reserve the right to
-update these terms at any time with notice to registered users.`,
+update these terms at any time with notice to registered users. You must be at least 18 years old to use the Service or create an account.`,
   },
   {
     title: '2. Permitted Use',
@@ -26,10 +26,15 @@ queries are licensed to you for your own use. You retain ownership of content yo
   },
   {
     title: '4. AI Services Disclaimer',
-    body: `Our AI tools (SmartBot, NexusBot) are powered by third-party models (Groq, Gemini).
-AI outputs may be inaccurate or incomplete. Do not rely on AI responses for medical, legal,
-financial, or safety-critical decisions. We are not liable for decisions made based on
-AI-generated content.`,
+    body: `Our AI tools (SmartBot, NexusBot) are powered by third-party models. PRATHOMIX is a technology platform, not a healthcare provider. Any medical-related AI outputs (like prescription parsing) are for informational purposes only and DO NOT constitute medical advice, diagnosis, or treatment. We are not liable for decisions made based on AI-generated content.`,
+  },
+  {
+    title: 'Disclaimer of Warranties',
+    body: `The Service is provided on an "AS IS" and "AS AVAILABLE" basis without warranties of any kind. PRATHOMIX does not guarantee that the service will be uninterrupted, error-free, or completely secure.`,
+  },
+  {
+    title: 'Indemnification',
+    body: `You agree to indemnify and hold PRATHOMIX harmless from any claims, damages, or legal fees arising out of your misuse of the Service, violation of these Terms, or infringement of third-party rights.`,
   },
   {
     title: '5. Payment Terms',
@@ -57,8 +62,11 @@ found unenforceable, the remaining provisions remain in full force.`,
   },
   {
     title: '9. Contact',
-    body: `For legal enquiries: prathomix@gmail.com
-  Founder: founder.prathomix@gmail.com`,
+    body: `For legal enquiries: prathomix@gmail.com | Founder: founder.prathomix@gmail.com.
+
+Grievance Officer (Per IT Act, 2000): 
+Name: Pratham Kumar Singh 
+Registered Office: Garhwa, Jharkhand, India - 822114.`,
   },
 ]
 

@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import {
   MessageCircle, X, Send, Cpu, User,
-  Sparkles, RefreshCw, Zap, AlertTriangle,
-  CheckCircle,
+  Sparkles, RefreshCw,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
@@ -19,25 +19,22 @@ const SESSION_ID = (() => {
 })()
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:10000').replace(/\/$/, '')
+const QUICK_CONTACT = 'WhatsApp: +91 98877 54009 | Email: prathomix@gmail.com'
+const QUICK_FOUNDER = 'founder.prathomix@gmail.com'
+const QUICK_SUPPORT = 'support.prathomix@gmail.com'
+const ACTION_NAV_RE = /\[ACTION_NAVIGATE:\s*([^\]]+)\]\s*$/i
+const ACTION_NAV_TRAIL_RE = /\s*\[ACTION_NAVIGATE:[^\]]*\]?\s*$/i
+const ROUTABLE_PATHS = new Set([
+  '/', '/about', '/services', '/products', '/pricing', '/case-studies',
+  '/founder', '/contact', '/blog', '/register', '/login',
+])
 
 // ── Welcome message ───────────────────────────────────────────
 const WELCOME = {
   id:   'welcome',
   role: 'bot',
   text: "Hello! I am **Mix**, your PRATHOMIX AI agent. I can help with AI services & products, technical architecture advice, founder info, contact details, and project scoping. What can I help you build today?",
-}
-
-// ── Minimal markdown renderer ─────────────────────────────────
-function md(text) {
-  if (!text) return ''
-  return text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,     '<em>$1</em>')
-    .replace(/`(.+?)`/g,       '<code style="background:rgba(255,255,255,0.1);padding:1px 6px;border-radius:4px;font-family:monospace;font-size:0.82em">$1</code>')
-    .replace(/^[•\-] (.+)$/gm, '<span style="display:block;padding-left:1.1em;position:relative"><span style="position:absolute;left:0;color:#6ee7b7">•</span>$1</span>')
-    .replace(/^(\d+)\. (.+)$/gm,'<span style="display:block;padding-left:1.5em;position:relative"><span style="position:absolute;left:0;color:#93c5fd">$1.</span>$2</span>')
-    .replace(/\n{2,}/g,        '\n')
-    .replace(/\n/g,             '<br/>')
+  content: "Hello! I am **Mix**, your PRATHOMIX AI agent. I can help with AI services & products, technical architecture advice, founder info, contact details, and project scoping. What can I help you build today?",
 }
 
 // ── Typing dots ───────────────────────────────────────────────
@@ -59,9 +56,106 @@ function TypingDots() {
 // ── Quick suggestion chips ────────────────────────────────────
 const CHIPS = [
   'What can Mix do?',
-  'Tell me about Travojo',
+  'Tell me about PRATHOMIX',
   'Get started',
 ]
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function md(text) {
+  if (!text) return ''
+
+  const placeholders = []
+  let html = escapeHtml(text)
+
+  html = html.replace(
+    /\b([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/gi,
+    (match) => {
+      const token = `__EMAIL_${placeholders.length}__`
+      placeholders.push({
+        token,
+        html: `<a href='mailto:${match}' class='text-brand-400 underline'>${match}</a>`,
+      })
+      return token
+    }
+  )
+
+  html = html.replace(
+    /(?:\+91[\s-]?)?[6-9](?:[\s-]?\d){9}\b/g,
+    (match) => {
+      const digits = match.replace(/\D/g, '')
+      const whatsappNumber = digits.length === 10 ? `91${digits}` : digits
+      const token = `__PHONE_${placeholders.length}__`
+      placeholders.push({
+        token,
+        html: `<a href='https://wa.me/${whatsappNumber}' target='_blank' rel='noopener noreferrer' class='text-brand-400 underline'>${match}</a>`,
+      })
+      return token
+    }
+  )
+
+  html = html
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br/>')
+
+  placeholders.forEach(({ token, html: replacement }) => {
+    html = html.replaceAll(token, replacement)
+  })
+
+  return html
+}
+
+function stripActionCommands(text) {
+  return text.replace(ACTION_NAV_TRAIL_RE, '')
+}
+
+function extractNavigationPath(text) {
+  const match = text.match(ACTION_NAV_RE)
+  if (!match) return null
+
+  const path = match[1].trim().replace(/\/$/, '') || '/'
+  if (!path.startsWith('/') || !ROUTABLE_PATHS.has(path)) return null
+  return path
+}
+
+function getLocalQuickReply(text) {
+  const normalized = text.toLowerCase().replace(/\s+/g, ' ').trim()
+
+  if (/^(hi|hello|hey|hii|yo)[!., ]*$/.test(normalized)) {
+    return {
+      intent: 'greeting',
+      text: "Hello, I’m Mix, the PRATHOMIX AI assistant. I can help with services, products, founder info, contact details, and project scoping. What do you want to build?",
+    }
+  }
+
+  if (/\b(want to build|need (an? )?(app|software|website|platform|solution)|build (an? )?(app|software|website|platform|solution)|create (an? )?(app|software|website|platform|solution)|develop (an? )?(app|software|website|platform|solution)|custom (software|app|development|build)|mvp|prototype|automation)\b/.test(normalized)) {
+    return {
+      intent: 'lead_generation',
+      text: "If you're building a project, app, or custom software, email prathomix@gmail.com with a short brief and timeline, and we’ll scope custom development quickly.",
+    }
+  }
+
+  if (/\b(founder|owner|pratham|who made|who built)\b/.test(normalized)) {
+    return { intent: 'contact_founder', text: QUICK_FOUNDER }
+  }
+
+  if (/\b(support|help|issue|bug|problem|assistance)\b/.test(normalized)) {
+    return { intent: 'contact_support', text: QUICK_SUPPORT }
+  }
+
+  if (/\b(contact details|what is your email|your email|contact info|email|whatsapp|phone|contact|reach|connect|get in touch)\b/.test(normalized)) {
+    return { intent: 'contact_general', text: QUICK_CONTACT }
+  }
+
+  return null
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MAIN COMPONENT
@@ -79,6 +173,8 @@ export default function SmartBot() {
   const bottomRef  = useRef(null)
   const inputRef   = useRef(null)
   const abortRef   = useRef(null)
+  const pendingNavigateRef = useRef(null)
+  const navigate = useNavigate()
   const { user }   = useAuth()
 
   // ── auto-scroll ───────────────────────────────────────────
@@ -101,18 +197,34 @@ export default function SmartBot() {
 
     setInput('')
     setShowChips(false)
+    pendingNavigateRef.current = null
+
+    const userMessage = { id: Date.now(), role: 'user', text, content: text }
+    const localReply = getLocalQuickReply(text)
+
+    if (localReply) {
+      const botId = userMessage.id + 1
+      setProvider('local')
+      setWaiting(false)
+      setStreaming(false)
+      setOffline(false)
+      setMessages(prev => [
+        ...prev,
+        userMessage,
+        { id: botId, role: 'bot', text: localReply.text, content: localReply.text, isStreaming: false },
+      ])
+      return
+    }
 
     // Append user message
-    setMessages(prev => [...prev, { id: Date.now(), role: 'user', text }])
+    setMessages(prev => [...prev, userMessage])
 
     // Placeholder bot message
-    const botId = Date.now() + 1
-    setMessages(prev => [...prev, { id: botId, role: 'bot', text: '', isStreaming: true }])
+    const botId = userMessage.id + 1
+    setMessages(prev => [...prev, { id: botId, role: 'bot', text: '', content: '', isStreaming: true }])
     setWaiting(true)
     setStreaming(true)
     abortRef.current = new AbortController()
-
-    let prevProvider = null
 
     try {
       const resp = await fetch(`${API_BASE}/api/chatbot/stream`, {
@@ -159,7 +271,6 @@ export default function SmartBot() {
                 const p = JSON.parse(raw).text
                 setProvider(p)
                 setWaiting(false)
-                prevProvider = p
               } catch {}
               continue
             }
@@ -168,7 +279,6 @@ export default function SmartBot() {
               try {
                 const p = JSON.parse(raw).text
                 setProvider(p)
-                prevProvider = p
               } catch {}
               continue
             }
@@ -177,15 +287,6 @@ export default function SmartBot() {
             if (curEvt === 'rule_response') {
               setProvider('rule')
               setWaiting(false)
-              continue
-            }
-
-            // ── done event ────────────────────────────────
-            if (curEvt === 'done') {
-              setMessages(prev =>
-                prev.map(m => m.id === botId ? { ...m, isStreaming: false } : m)
-              )
-              setOffline(false)
               continue
             }
 
@@ -198,12 +299,33 @@ export default function SmartBot() {
                   setMessages(prev =>
                     prev.map(m =>
                       m.id === botId
-                        ? { ...m, text: m.text + chunk }
+                        ? (() => {
+                            const nextText = `${m.text || ''}${chunk}`
+                            const navPath = extractNavigationPath(nextText)
+                            if (navPath) pendingNavigateRef.current = navPath
+                            const nextContent = stripActionCommands(nextText)
+                            return { ...m, text: nextContent, content: nextContent }
+                          })()
                         : m
                     )
                   )
                 }
               } catch {}
+            }
+
+            if (curEvt === 'done') {
+              const navPath = pendingNavigateRef.current
+              pendingNavigateRef.current = null
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === botId
+                    ? { ...m, text: stripActionCommands(m.text), content: stripActionCommands(m.text), isStreaming: false }
+                    : m
+                )
+              )
+              setOffline(false)
+              if (navPath) navigate(navPath)
+              continue
             }
           }
         }
@@ -218,6 +340,7 @@ export default function SmartBot() {
             ? {
                 ...m,
                 text: "I could not reach my AI engine right now.\n\n📧  prathomix@gmail.com",
+                content: "I could not reach my AI engine right now.\n\n📧  prathomix@gmail.com",
                 isStreaming: false,
                 isError: true,
               }
@@ -227,8 +350,9 @@ export default function SmartBot() {
     } finally {
       setStreaming(false)
       setWaiting(false)
+      pendingNavigateRef.current = null
     }
-  }, [input, streaming, user])
+  }, [input, streaming, user, navigate])
 
   const handleKey = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
@@ -238,6 +362,7 @@ export default function SmartBot() {
     abortRef.current?.abort()
     setStreaming(false)
     setWaiting(false)
+    pendingNavigateRef.current = null
     setMessages(prev => prev.map(m => m.isStreaming ? { ...m, isStreaming: false } : m))
   }
 
@@ -245,6 +370,7 @@ export default function SmartBot() {
     setMessages([WELCOME])
     setShowChips(true)
     setProvider(null)
+    pendingNavigateRef.current = null
     fetch(`${API_BASE}/api/chatbot/session/${SESSION_ID}`, { method: 'DELETE' }).catch(() => {})
   }
 
@@ -367,7 +493,7 @@ export default function SmartBot() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.22 }}
-                  className={`flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+                  className={`flex flex-wrap gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
                 >
                   {/* Avatar */}
                   <div className={`w-7 h-7 rounded-xl flex-shrink-0 flex
@@ -382,22 +508,30 @@ export default function SmartBot() {
 
                   {/* Bubble */}
                   {msg.role === 'user' ? (
-                    <div className="max-w-[84%] px-3.5 py-2 rounded-2xl rounded-tr-sm
-                                    text-sm leading-snug
+                    <div className="max-w-[90%] rounded-2xl rounded-tr-sm px-3.5 py-2
                                     bg-ink-600/30 text-white border border-ink-500/20">
-                      {msg.text}
+                      <div className="flex flex-col gap-2 w-full overflow-hidden">
+                        <div
+                          className="text-sm leading-relaxed break-words whitespace-pre-wrap"
+                          style={{ wordSpacing: '0.1rem', overflowWrap: 'anywhere' }}
+                        >
+                          {msg.content}
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <div className={`max-w-[84%] px-3.5 py-2 rounded-2xl rounded-tl-sm
-                                     text-sm leading-snug ${
+                    <div className={`max-w-[90%] rounded-2xl rounded-tl-sm px-3.5 py-2 ${
                       msg.isError
                         ? 'bg-red-500/10 text-red-300 border border-red-500/20'
                         : 'bg-brand-500/10 text-gray-200 border border-brand-500/15'
                     }`}>
-                      {msg.text
-                        ? <span dangerouslySetInnerHTML={{ __html: md(msg.text) }} />
-                        : null
-                      }
+                      <div className="flex flex-col gap-2 w-full overflow-hidden">
+                        <div
+                          className="text-sm leading-relaxed break-words whitespace-pre-wrap"
+                          style={{ wordSpacing: '0.1rem', overflowWrap: 'anywhere' }}
+                          dangerouslySetInnerHTML={{ __html: md(msg.content) }}
+                        />
+                      </div>
                       {/* Streaming cursor */}
                       {msg.isStreaming && (
                         <motion.span

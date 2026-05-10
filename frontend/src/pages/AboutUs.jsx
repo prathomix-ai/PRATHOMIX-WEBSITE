@@ -11,6 +11,7 @@ import {
   Zap, Layers, TrendingUp, ArrowRight, Users,
   Code2, Brain, Cpu, Shield, Rocket, ChevronDown,
   Terminal, GitBranch, Database,
+  Server, ShieldCheck, Lock,
 } from 'lucide-react'
 import AnimatedBackground from '../components/AnimatedBackground'
 
@@ -73,6 +74,33 @@ const PHILOSOPHY = [
     body:  "As your business gets bigger and gets more users, the software we build will handle it easily. It is designed to grow with you without slowing down or crashing.",
     accent: '#8b5cf6',   // violet
     glow:   'rgba(139,92,246,0.18)',
+  },
+]
+
+const ENTERPRISE_STANDARD = [
+  {
+    icon: Server,
+    label: '01',
+    title: 'Scalable Architecture',
+    body: 'Powered by enterprise-grade cloud infrastructure (AWS/Vercel) ensuring 99.9% uptime.',
+    accent: '#14b8a6',
+    glow: 'rgba(20,184,166,0.18)',
+  },
+  {
+    icon: ShieldCheck,
+    label: '02',
+    title: 'Absolute Data Privacy',
+    body: 'Your data is your own. We strictly do NOT use client data or proprietary workflows to train public LLMs.',
+    accent: '#06b6d4',
+    glow: 'rgba(6,182,212,0.18)',
+  },
+  {
+    icon: Lock,
+    label: '03',
+    title: 'Bank-Grade Security',
+    body: 'All sensitive data and API interactions are secured with AES-256 encryption and role-based access control.',
+    accent: '#f43f5e',
+    glow: 'rgba(244,63,94,0.18)',
   },
 ]
 
@@ -629,6 +657,51 @@ export default function AboutUs() {
             </div>
           </div>
         </motion.div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          ENTERPRISE STANDARD
+      ══════════════════════════════════════════ */}
+      <section className="relative z-10 max-w-6xl mx-auto px-4 mb-32">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-80px' }}
+          variants={stagger}
+          className="text-center mb-14"
+        >
+          <SectionTag>THE ENTERPRISE STANDARD</SectionTag>
+          <motion.h2
+            variants={fadeUp}
+            custom={1}
+            className="mt-5 section-heading text-3xl md:text-4xl"
+          >
+            Enterprise-Grade{' '}
+            <span
+              style={{
+                background: 'linear-gradient(135deg, #10b981, #06b6d4)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Tech & Security
+            </span>
+          </motion.h2>
+          <motion.p
+            variants={fadeUp}
+            custom={2}
+            className="mt-4 text-base md:text-lg max-w-xl mx-auto"
+            style={{ color: '#64748b' }}
+          >
+            Built to reassure B2B buyers with resilient infrastructure, strict privacy, and hardened access controls.
+          </motion.p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {ENTERPRISE_STANDARD.map((card, i) => (
+            <PhilosophyCard key={card.title} card={card} i={i} />
+          ))}
+        </div>
       </section>
 
       {/* ══════════════════════════════════════════

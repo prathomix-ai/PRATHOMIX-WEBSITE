@@ -128,8 +128,10 @@ export default function Contact() {
               className="glass rounded-2xl p-6 text-center"
             >
               <MapPin size={28} className="text-brand-400 mx-auto mb-3" />
-              <p className="text-white font-display font-semibold">Jaipur, Rajasthan, India</p>
-              <p className="text-xs text-gray-500 mt-1 font-mono">Remote-first · Work worldwide</p>
+              <p className="text-white font-display font-semibold">Operating Office</p>
+              <p className="text-xs text-gray-400 mt-1 font-mono">Jaipur, Rajasthan, India</p>
+              <p className="text-white font-display font-semibold mt-4">Registered Office</p>
+              <p className="text-xs text-gray-400 mt-1 font-mono">Garhwa, Jharkhand, India - 822114</p>
             </motion.div>
           </div>
 

@@ -12,7 +12,7 @@
 import React, { useState } from 'react'
 import { X, ArrowRight } from 'lucide-react'
 
-export default function AlertBanner({ message, href, storageKey }) {
+export default function AlertBanner({ message, href, storageKey }) { 
   const [visible, setVisible] = useState(() => {
     if (!storageKey) return true
     return !localStorage.getItem(storageKey)

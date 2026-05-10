@@ -60,6 +60,21 @@ export default function UserProfile() {
           </div>
         </motion.div>
 
+        {/* Privacy Notice */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.08 }}
+          className="rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 p-4 flex items-start gap-3"
+        >
+          <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
+            <Shield size={16} className="text-brand-400" />
+          </div>
+          <p className="text-gray-400 text-sm leading-relaxed">
+            <span className="text-white font-medium">Privacy &amp; Security:</span> To protect your data, all AI chat history is automatically deleted from our servers every 7 days. We prioritize your privacy over long-term storage.
+          </p>
+        </motion.div>
+
         {/* Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

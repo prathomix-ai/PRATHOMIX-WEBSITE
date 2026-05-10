@@ -22,7 +22,11 @@ enquiries; personalise your experience; send product updates (if opted in); dete
 abuse; and comply with legal obligations.
 
 We do not sell your personal data to any third parties. We do not run advertisements on our
-platform.`,
+platform. Zero-Retention & No Training: We strictly do not use your proprietary business data, prompts, or end-user interactions to train or fine-tune public AI models.`,
+  },
+  {
+    title: 'Our Role in Data Processing',
+    body: `For B2B clients, PRATHOMIX acts as a "Data Processor", while our client is the "Data Controller". We only process end-user data on behalf of our clients to provide the service. Clients are responsible for obtaining explicit consent from their customers.`,
   },
   {
     title: '3. Data Storage & Security',
@@ -80,10 +84,11 @@ after changes constitutes acceptance of the updated policy.`,
   },
   {
     title: '10. Contact',
-    body: `For privacy-related questions or requests, contact:
-• Email: prathomix@gmail.com
-• Founder: founder.prathomix@gmail.com
-• Address: Jaipur, Rajasthan, India`,
+    body: `For privacy-related questions or requests, contact: Email: prathomix@gmail.com | Founder: founder.prathomix@gmail.com. 
+
+Grievance Officer (Per IT Act, 2000): 
+Name: Pratham Kumar Singh 
+Registered Office: Garhwa, Jharkhand, India - 822114.`,
   },
 ]
 

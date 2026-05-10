@@ -6,7 +6,7 @@ const LINKS = {
   Platform: [
     { to: '/services',     label: 'Services'      },
     { to: '/products',     label: 'Products'      },
-    // { to: '/pricing',      label: 'Pricing'       },
+    { to: '/pricing',      label: 'Pricing'       },
     { to: '/case-studies', label: 'Case Studies'  },
   ],
   Company: [
@@ -81,9 +81,17 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-600 font-mono">
-            &copy; {year} PRATHOMIX. All rights reserved.
-          </p>
+          <div className="space-y-1 text-center sm:text-left">
+            <p className="text-xs text-gray-600 font-mono">
+              &copy; {year} PRATHOMIX. All rights reserved.
+            </p>
+            <p className="text-xs text-gray-600 font-mono">
+              PRATHOMIX is a registered MSME under the Government of India (UDYAM-JH-07-0019663)
+            </p>
+            <p className="text-xs text-gray-600 font-mono">
+              Operations: Jaipur | Registered: Garhwa, Jharkhand
+            </p>
+          </div>
           <div className="flex items-center gap-4">
             <a href="mailto:prathomix@gmail.com" className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors font-mono">
               <Mail size={12} /> prathomix@gmail.com
